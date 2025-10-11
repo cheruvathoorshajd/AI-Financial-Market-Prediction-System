@@ -1,0 +1,80 @@
+# Quick Manual Commands to Push to GitHub
+# Copy and paste these commands one by one
+
+# ============================================
+# STEP 1: Create Repository on GitHub
+# ============================================
+# 1. Go to: https://github.com/new
+# 2. Repository name: fintrack-ai (or your choice)
+# 3. Choose Public or Private
+# 4. DO NOT check "Initialize with README"
+# 5. Click "Create repository"
+
+
+# ============================================
+# STEP 2: Run These Commands
+# ============================================
+
+# Navigate to project directory
+cd "c:\Users\Dennis Sharon\OneDrive\Desktop\LFG\AL Finacial Tracker"
+
+# Initialize Git
+git init
+
+# Configure Git (replace with your info)
+git config user.name "Dennis Sharon"
+git config user.email "your-email@example.com"
+
+# Add all files
+git add .
+
+# Create initial commit
+git commit -m "Initial commit: FinTrack AI Financial Tracker"
+
+# Add GitHub remote (REPLACE 'yourusername' with your GitHub username)
+git remote add origin https://github.com/yourusername/fintrack-ai.git
+
+# Create main branch
+git branch -M main
+
+# Push to GitHub
+git push -u origin main
+
+
+# ============================================
+# SUCCESS!
+# ============================================
+# Your repository will be at:
+# https://github.com/yourusername/fintrack-ai
+
+
+# ============================================
+# Future Updates (after initial push)
+# ============================================
+
+# Make changes to your code, then:
+git add .
+git commit -m "Description of your changes"
+git push
+
+
+# ============================================
+# Troubleshooting
+# ============================================
+
+# If you get "remote origin already exists":
+git remote remove origin
+git remote add origin https://github.com/yourusername/fintrack-ai.git
+
+# If you get authentication errors:
+# You may need to use a Personal Access Token instead of password
+# Create token at: https://github.com/settings/tokens
+
+# Check current status:
+git status
+
+# View commit history:
+git log --oneline
+
+# Check remote URL:
+git remote -v
