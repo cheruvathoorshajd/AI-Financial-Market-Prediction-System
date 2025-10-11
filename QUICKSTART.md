@@ -6,7 +6,7 @@
 
 ### Step 1: Clone the Repo
 ```bash
-git clone https://github.com/yourusername/fintrack.git
+git clone https://github.com/yourusername/fintrack.git](https://github.com/cheruvathoorshajd/AI-Financial-Market-Prediction-System.git
 cd fintrack
 ```
 
