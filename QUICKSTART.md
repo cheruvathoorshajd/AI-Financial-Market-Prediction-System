@@ -197,12 +197,6 @@ Once backend is running:
 
 ---
 
-## 🆘 Need Help?
 
-- Read the full [README.md](README.md)
-- Check [CLEANUP_SUMMARY.md](CLEANUP_SUMMARY.md) for project structure
-- Email: dennis.sharon@email.com
-
----
 
 **Happy Coding! 🎉**
