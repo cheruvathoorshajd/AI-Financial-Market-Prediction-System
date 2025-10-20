@@ -1,15 +1,19 @@
 import marketService, { StockData } from './marketService';
+import mlPredictionService, { MLAnalysis } from './mlPredictionService';
 
 export interface Recommendation {
   symbol: string;
   name: string;
-  action: 'Strong Buy' | 'Hold' | 'Sell';
+  action: 'Strong Buy' | 'Buy' | 'Hold' | 'Sell' | 'Strong Sell';
   confidence: number;
   reasoning: string;
   currentPrice: number;
   targetPrice: number;
   changePercent: number;
   actionColor: 'green' | 'yellow' | 'red';
+  method?: string;
+  predictions?: number[];
+  predictionDates?: string[];
 }
 
 export interface RiskMetric {
@@ -80,6 +84,43 @@ class RecommendationService {
     return reasons.length > 0 
       ? reasons.join(', ') + '.' 
       : 'Market conditions are neutral with mixed signals.';
+  }
+
+  async generateMLRecommendations(): Promise<Recommendation[]> {
+    try {
+      // Use Machine Learning predictions
+      const mlAnalyses = await mlPredictionService.generateMLRecommendations(10);
+      
+      // Convert ML analyses to Recommendation format
+      const recommendations: Recommendation[] = mlAnalyses.map(analysis => {
+        const actionColor = analysis.action.includes('Buy') ? 'green' : 
+                           analysis.action === 'Hold' ? 'yellow' : 'red';
+        
+        return {
+          symbol: analysis.symbol,
+          name: analysis.name,
+          action: analysis.action,
+          confidence: analysis.confidence,
+          reasoning: analysis.reasoning,
+          currentPrice: analysis.current_price,
+          targetPrice: analysis.predicted_price,
+          changePercent: analysis.price_change_percent,
+          actionColor: actionColor,
+          method: analysis.method,
+          predictions: analysis.predictions,
+          predictionDates: analysis.prediction_dates
+        };
+      });
+
+      // Sort by confidence and return top 5
+      return recommendations
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 5);
+    } catch (error) {
+      console.error('Error generating ML recommendations:', error);
+      // Fallback to technical analysis if ML fails
+      return this.generateRecommendations();
+    }
   }
 
   async generateRecommendations(): Promise<Recommendation[]> {

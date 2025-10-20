@@ -7,19 +7,22 @@ const AIInsights = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [useML, setUseML] = useState(true); // Toggle for ML vs Technical Analysis
 
   useEffect(() => {
     loadRecommendations();
     // Refresh every 5 minutes
     const interval = setInterval(loadRecommendations, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [useML]);
 
   const loadRecommendations = async () => {
     try {
       setLoading(true);
       setError(null);
-      const recs = await recommendationService.generateRecommendations();
+      const recs = useML 
+        ? await recommendationService.generateMLRecommendations()
+        : await recommendationService.generateRecommendations();
       const risks = recommendationService.calculateRiskMetrics(recs);
       setRecommendations(recs);
       setRiskMetrics(risks);
@@ -34,7 +37,7 @@ const AIInsights = () => {
 
   const getActionBadgeStyle = (action: string) => {
     const baseStyle = 'px-4 py-1.5 rounded-lg text-sm font-bold tracking-wide transition-all duration-300 transform hover:scale-105';
-    if (action === 'Strong Buy') return `${baseStyle} bg-black text-white shadow-lg`;
+    if (action.includes('Buy')) return `${baseStyle} bg-black text-white shadow-lg`;
     if (action === 'Hold') return `${baseStyle} bg-gray-800 text-white shadow-md`;
     return `${baseStyle} bg-gray-600 text-white shadow-sm`;
   };
@@ -70,9 +73,26 @@ const AIInsights = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold text-black mb-3 tracking-tight">AI Investment Insights</h1>
-            <p className="text-gray-600 text-base">Real-time market analysis powered by technical algorithms</p>
+            <p className="text-gray-600 text-base">
+              {useML ? '🤖 Machine Learning Predictions using LSTM Neural Networks' : '📊 Technical Analysis based on market indicators'}
+            </p>
           </div>
           <div className="flex flex-col items-end gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-500 font-medium">
+                Analysis Mode:
+              </span>
+              <button
+                onClick={() => setUseML(!useML)}
+                className={`px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 ${
+                  useML 
+                    ? 'bg-black text-white shadow-lg' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {useML ? '🤖 ML Mode' : '📊 Technical'}
+              </button>
+            </div>
             <span className="text-sm text-gray-500 font-medium">
               Last updated: {lastUpdated.toLocaleTimeString()}
             </span>
@@ -87,7 +107,7 @@ const AIInsights = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Refreshing...
+                  Analyzing...
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
