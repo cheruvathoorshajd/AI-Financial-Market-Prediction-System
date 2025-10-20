@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "a_very_secret_key"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     DATABASE_URL: str = "sqlite:///./test.db"
-    BACKEND_CORS_ORIGINS: List[str] = []
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
     class Config:
         env_file = ".env"
