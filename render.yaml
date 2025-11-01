@@ -1,0 +1,19 @@
+﻿services:
+  - type: web
+    name: ai-financial-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/market/trending
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:///./sql_app.db
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: BACKEND_CORS_ORIGINS
+        value: '[\"https://ai-financial-frontend.onrender.com\"]'
+      - key: PYTHON_VERSION
+        value: 3.11.0
