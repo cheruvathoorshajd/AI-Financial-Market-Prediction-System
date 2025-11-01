@@ -20,3 +20,9 @@ if settings.BACKEND_CORS_ORIGINS:
     )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+@app.get("/health")
+async def health_check():
+    """Simple health check endpoint that doesn't call external APIs"""
+    return {"status": "healthy", "service": "AI Financial Tracker"}
+
