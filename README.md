@@ -25,11 +25,21 @@ A modern, full-stack financial tracking application with real-time market data a
 
 ### 🌐 Deploy to Cloud (FREE)
 
-Want to make your project live and accessible to everyone? **[See DEPLOYMENT.md](DEPLOYMENT.md)** for a complete step-by-step guide to deploy on:
-- **Railway** (backend) - $5 free credits/month
-- **Vercel** (frontend) - 100% free forever
+Want to make your project live and accessible to everyone? Choose your preferred platform:
 
-**Deploy time: ~10 minutes | No credit card needed**
+#### **Option 1: Railway + Vercel** (Recommended)
+📄 **[DEPLOYMENT.md](DEPLOYMENT.md)** - Railway backend + Vercel frontend
+- Railway: $5 free credits/month (~500 hours)
+- Vercel: 100% free forever
+- Deploy time: ~10 minutes
+
+#### **Option 2: Render** (More Free Hours)
+📄 **[DEPLOYMENT-RENDER.md](DEPLOYMENT-RENDER.md)** - All-in-one Render deployment
+- Render: 750 free hours/month
+- Free static site hosting
+- Deploy time: ~12 minutes
+
+**No credit card needed for either option!**
 
 ---
 
