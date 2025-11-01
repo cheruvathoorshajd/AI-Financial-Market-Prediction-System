@@ -2,11 +2,6 @@
 
 A modern, full-stack financial tracking application with real-time market data and AI-powered investment insights. Built with React, TypeScript, FastAPI, and a sleek black & white UI design.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.9+-blue.svg)
-![React](https://img.shields.io/badge/react-18.3+-blue.svg)
-![FastAPI](https://img.shields.io/badge/fastapi-latest-green.svg)
-
 ## ✨ Features
 
 ### 📈 Real-Time Market Data
@@ -19,13 +14,6 @@ A modern, full-stack financial tracking application with real-time market data a
 - Smart investment recommendations (Strong Buy, Hold, Sell)
 - Confidence scores based on multiple market indicators
 - Real-time market analysis with automatic updates
-
-### 🎨 Premium UI/UX
-- Sleek black & white minimalist design
-- Smooth animations and transitions
-- Responsive dropdown navigation menu
-- Interactive data visualizations
-- Pre-loaders for seamless user experience
 
 ### 🔐 Secure Authentication
 - JWT-based authentication
@@ -249,25 +237,6 @@ GET    /api/v1/users/me               # Get user profile
 PUT    /api/v1/users/me               # Update user profile
 ```
 
-## 🎨 UI Design System
-
-### Color Palette
-- **Primary**: Black (#000000)
-- **Background**: Gray gradient (from-gray-50 to-gray-100)
-- **Cards**: White with black top border
-- **Accent**: Gray scale for hierarchy
-
-### Typography
-- **Headers**: text-4xl (36px)
-- **Sections**: text-2xl (24px)
-- **Subsections**: text-xl (20px)
-- **Body**: text-base (16px)
-
-### Animations
-- **Hover Scale**: transform hover:scale-105
-- **Transitions**: duration-300 / duration-500
-- **Shadow Lift**: shadow-lg hover:shadow-2xl
-- **Smooth Translate**: hover:-translate-y-1
 
 ## 🧪 Testing
 
@@ -372,8 +341,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 👨‍💻 Author
 
 **Dennis Sharon**
-- Email: dennis.sharon@email.com
-- GitHub: [@yourusername](https://github.com/yourusername)
+- Email: cheruvathoorshaj.d@northeastern.edu
 
 ## 🙏 Acknowledgments
 
@@ -386,8 +354,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If you have any questions or need help, please:
 - Open an issue on GitHub
-- Email: dennis.sharon@email.com
+- Email: cheruvathoorshaj.d@northeastern.edu
 
 ---
 
-**⭐ Star this repository if you find it helpful!**
