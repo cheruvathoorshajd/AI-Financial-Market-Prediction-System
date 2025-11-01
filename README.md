@@ -33,7 +33,19 @@ A modern, full-stack financial tracking application with real-time market data a
 - Protected API endpoints
 - User profile management
 
-## 🚀 Quick Start
+## 🚀 Deployment
+
+### 🌐 Deploy to Cloud (FREE)
+
+Want to make your project live and accessible to everyone? **[See DEPLOYMENT.md](DEPLOYMENT.md)** for a complete step-by-step guide to deploy on:
+- **Railway** (backend) - $5 free credits/month
+- **Vercel** (frontend) - 100% free forever
+
+**Deploy time: ~10 minutes | No credit card needed**
+
+---
+
+## 💻 Local Development
 
 ### Prerequisites
 
