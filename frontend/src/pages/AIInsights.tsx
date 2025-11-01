@@ -9,13 +9,6 @@ const AIInsights = () => {
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [useML, setUseML] = useState(true); // Toggle for ML vs Technical Analysis
 
-  useEffect(() => {
-    loadRecommendations();
-    // Refresh every 5 minutes
-    const interval = setInterval(loadRecommendations, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [useML]);
-
   const loadRecommendations = async () => {
     try {
       setLoading(true);
@@ -34,6 +27,14 @@ const AIInsights = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadRecommendations();
+    // Refresh every 5 minutes
+    const interval = setInterval(loadRecommendations, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [useML]);
 
   const getActionBadgeStyle = (action: string) => {
     const baseStyle = 'px-4 py-1.5 rounded-lg text-sm font-bold tracking-wide transition-all duration-300 transform hover:scale-105';

@@ -1,5 +1,5 @@
 import marketService, { StockData } from './marketService';
-import mlPredictionService, { MLAnalysis } from './mlPredictionService';
+import mlPredictionService from './mlPredictionService';
 
 export interface Recommendation {
   symbol: string;

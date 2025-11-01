@@ -1,4 +1,4 @@
-﻿const Profile = () => {
+const Profile = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
       <div className="mb-10 bg-white rounded-2xl shadow-lg p-8 border-t-4 border-black">
