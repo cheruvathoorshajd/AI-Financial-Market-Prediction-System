@@ -4,7 +4,8 @@ Machine Learning Stock Price Predictor using LSTM Neural Network
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-import yfinance as yf
+from alpha_vantage.timeseries import TimeSeries
+import os
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 import warnings
@@ -30,15 +31,37 @@ class MLStockPredictor:
         self.sequence_length = sequence_length  # Days of historical data to use
         self.scaler = MinMaxScaler(feature_range=(0, 1))
         self.model = None
+        self.api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "UP4DUV2FAQA27ENY")
+        self.ts = TimeSeries(key=self.api_key, output_format='pandas')
         
     def fetch_historical_data(self, symbol: str, period: str = "2y") -> pd.DataFrame:
-        """Fetch historical stock data"""
+        """Fetch historical stock data using Alpha Vantage"""
         try:
-            stock = yf.Ticker(symbol)
-            df = stock.history(period=period)
+            # Get full historical data (up to 20 years)
+            data, meta_data = self.ts.get_daily(symbol=symbol, outputsize='full')
             
-            if df.empty:
+            if data.empty:
                 raise ValueError(f"No data available for {symbol}")
+            
+            # Rename columns to match expected format
+            df = pd.DataFrame({
+                'Open': data['1. open'],
+                'High': data['2. high'],
+                'Low': data['3. low'],
+                'Close': data['4. close'],
+                'Volume': data['5. volume']
+            })
+            
+            # Sort by date (oldest first)
+            df = df.sort_index()
+            
+            # Filter by period if needed (approximate)
+            if period == "6mo":
+                df = df.tail(126)  # ~6 months of trading days
+            elif period == "1y":
+                df = df.tail(252)  # ~1 year of trading days
+            elif period == "2y":
+                df = df.tail(504)  # ~2 years of trading days
             
             # Add technical indicators
             df['MA7'] = df['Close'].rolling(window=7).mean()
