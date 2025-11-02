@@ -1,47 +1,69 @@
-import yfinance as yf
+from alpha_vantage.timeseries import TimeSeries
+import requests
+import os
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 import pandas as pd
 
 class MarketService:
-    """Service for fetching real-time market data using Yahoo Finance"""
+    """Service for fetching real-time market data using Alpha Vantage API"""
     
     def __init__(self):
+        self.api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "UP4DUV2FAQA27ENY")
+        self.ts = TimeSeries(key=self.api_key, output_format='pandas')
+        self.base_url = "https://www.alphavantage.co/query"
         self.cache = {}
         self.cache_duration = timedelta(minutes=5)  # Cache data for 5 minutes
     
     def get_stock_price(self, symbol: str) -> Optional[Dict]:
         """Get current price and basic info for a single stock"""
         try:
-            ticker = yf.Ticker(symbol)
-            info = ticker.info
+            # Check cache first
+            cache_key = f"{symbol}_quote"
+            if cache_key in self.cache:
+                cached_data, cached_time = self.cache[cache_key]
+                if datetime.now() - cached_time < self.cache_duration:
+                    return cached_data
             
-            # Get the most recent price data
-            hist = ticker.history(period="1d", interval="1m")
-            if hist.empty:
-                hist = ticker.history(period="5d")
+            # Get quote data from Alpha Vantage
+            params = {
+                "function": "GLOBAL_QUOTE",
+                "symbol": symbol,
+                "apikey": self.api_key
+            }
+            response = requests.get(self.base_url, params=params, timeout=10)
+            data = response.json()
             
-            if hist.empty:
+            if "Global Quote" not in data or not data["Global Quote"]:
+                print(f"No data returned for {symbol}")
                 return None
             
-            current_price = hist['Close'].iloc[-1]
-            open_price = hist['Open'].iloc[0]
-            change = current_price - open_price
-            change_percent = (change / open_price) * 100 if open_price != 0 else 0
+            quote = data["Global Quote"]
             
-            return {
+            current_price = float(quote.get("05. price", 0))
+            open_price = float(quote.get("02. open", 0))
+            change = float(quote.get("09. change", 0))
+            change_percent_str = quote.get("10. change percent", "0%").replace("%", "")
+            change_percent = float(change_percent_str)
+            
+            result = {
                 "symbol": symbol.upper(),
-                "name": info.get("longName", symbol),
-                "price": round(float(current_price), 2),
-                "change": round(float(change), 2),
-                "changePercent": round(float(change_percent), 2),
-                "open": round(float(open_price), 2),
-                "high": round(float(hist['High'].max()), 2),
-                "low": round(float(hist['Low'].min()), 2),
-                "volume": int(hist['Volume'].sum()),
-                "marketCap": info.get("marketCap"),
+                "name": symbol.upper(),  # Will use symbol as name to save API calls
+                "price": round(current_price, 2),
+                "change": round(change, 2),
+                "changePercent": round(change_percent, 2),
+                "open": round(open_price, 2),
+                "high": round(float(quote.get("03. high", 0)), 2),
+                "low": round(float(quote.get("04. low", 0)), 2),
+                "volume": int(quote.get("06. volume", 0)),
+                "marketCap": None,  # Market cap requires extra API call
                 "timestamp": datetime.now().isoformat()
             }
+            
+            # Cache the result
+            self.cache[cache_key] = (result, datetime.now())
+            
+            return result
         except Exception as e:
             print(f"Error fetching data for {symbol}: {str(e)}")
             return None
@@ -56,31 +78,25 @@ class MarketService:
         return results
     
     def get_market_indices(self) -> List[Dict]:
-        """Get major market indices"""
+        """Get major market indices - using ETFs as proxy"""
+        # Using popular ETFs as proxy for indices
         indices = {
-            "^GSPC": "S&P 500",
-            "^IXIC": "NASDAQ",
-            "^DJI": "DOW JONES"
+            "SPY": "S&P 500",
+            "QQQ": "NASDAQ-100",
+            "DIA": "DOW JONES"
         }
         
         results = []
         for symbol, name in indices.items():
             try:
-                ticker = yf.Ticker(symbol)
-                hist = ticker.history(period="2d")
-                
-                if len(hist) >= 2:
-                    current_price = hist['Close'].iloc[-1]
-                    previous_price = hist['Close'].iloc[-2]
-                    change = current_price - previous_price
-                    change_percent = (change / previous_price) * 100
-                    
+                stock_data = self.get_stock_price(symbol)
+                if stock_data:
                     results.append({
                         "symbol": symbol,
                         "name": name,
-                        "value": round(float(current_price), 2),
-                        "change": round(float(change), 2),
-                        "changePercent": round(float(change_percent), 2),
+                        "value": stock_data["price"],
+                        "change": stock_data["change"],
+                        "changePercent": stock_data["changePercent"],
                         "timestamp": datetime.now().isoformat()
                     })
             except Exception as e:
@@ -123,19 +139,25 @@ class MarketService:
     def get_stock_history(self, symbol: str, period: str = "1mo") -> List[Dict]:
         """Get historical price data for a stock"""
         try:
-            ticker = yf.Ticker(symbol)
-            hist = ticker.history(period=period)
+            # Alpha Vantage doesn't use period strings, use compact for recent data
+            outputsize = "compact"  # Last 100 data points
+            
+            # Get daily data
+            data, meta_data = self.ts.get_daily(symbol=symbol, outputsize=outputsize)
             
             history = []
-            for date, row in hist.iterrows():
+            for date, row in data.iterrows():
                 history.append({
                     "date": date.strftime("%Y-%m-%d"),
-                    "open": round(float(row['Open']), 2),
-                    "high": round(float(row['High']), 2),
-                    "low": round(float(row['Low']), 2),
-                    "close": round(float(row['Close']), 2),
-                    "volume": int(row['Volume'])
+                    "open": round(float(row['1. open']), 2),
+                    "high": round(float(row['2. high']), 2),
+                    "low": round(float(row['3. low']), 2),
+                    "close": round(float(row['4. close']), 2),
+                    "volume": int(row['5. volume'])
                 })
+            
+            # Sort by date ascending (oldest first)
+            history.reverse()
             
             return history
         except Exception as e:
