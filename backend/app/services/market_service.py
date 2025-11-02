@@ -34,11 +34,25 @@ class MarketService:
             response = requests.get(self.base_url, params=params, timeout=10)
             data = response.json()
             
+            # Check for API error messages
+            if "Error Message" in data:
+                print(f"Alpha Vantage Error for {symbol}: {data['Error Message']}")
+                return None
+            
+            if "Note" in data:
+                print(f"Alpha Vantage Rate Limit: {data['Note']}")
+                return None
+            
             if "Global Quote" not in data or not data["Global Quote"]:
-                print(f"No data returned for {symbol}")
+                print(f"No data returned for {symbol}. Response: {data}")
                 return None
             
             quote = data["Global Quote"]
+            
+            # Check if quote is empty
+            if not quote or "05. price" not in quote:
+                print(f"Empty quote data for {symbol}")
+                return None
             
             current_price = float(quote.get("05. price", 0))
             open_price = float(quote.get("02. open", 0))
@@ -63,18 +77,25 @@ class MarketService:
             # Cache the result
             self.cache[cache_key] = (result, datetime.now())
             
+            print(f"Successfully fetched data for {symbol}: ${current_price}")
             return result
         except Exception as e:
             print(f"Error fetching data for {symbol}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def get_multiple_stocks(self, symbols: List[str]) -> List[Dict]:
         """Get current prices for multiple stocks"""
         results = []
-        for symbol in symbols:
+        for i, symbol in enumerate(symbols):
             data = self.get_stock_price(symbol)
             if data:
                 results.append(data)
+            # Add small delay between API calls to avoid rate limiting
+            if i < len(symbols) - 1:  # Don't delay after last one
+                import time
+                time.sleep(0.5)  # 500ms delay between calls
         return results
     
     def get_market_indices(self) -> List[Dict]:
@@ -107,23 +128,23 @@ class MarketService:
     
     def get_trending_stocks(self, limit: int = 10) -> List[Dict]:
         """Get trending stocks (using predefined popular stocks)"""
-        # Popular stocks to show as "trending"
+        # Popular stocks to show as "trending" - reduced to 5 to avoid rate limits
         popular_symbols = [
-            "AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", 
-            "NVDA", "META", "AMD", "NFLX", "DIS"
+            "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"
         ]
         
-        stocks = self.get_multiple_stocks(popular_symbols[:limit])
+        # Only fetch up to 5 stocks to save API calls
+        fetch_limit = min(limit, 5)
+        stocks = self.get_multiple_stocks(popular_symbols[:fetch_limit])
         # Sort by absolute change percent to show most volatile
         return sorted(stocks, key=lambda x: abs(x.get('changePercent', 0)), reverse=True)
     
     def get_top_gainers_losers(self) -> Dict[str, List[Dict]]:
         """Get top gaining and losing stocks"""
-        # Extended list of popular stocks
+        # Reduced list of popular stocks to avoid rate limits
         symbols = [
-            "AAPL", "GOOGL", "MSFT", "AMZN", "TSLA", "NVDA", "META", "AMD",
-            "NFLX", "DIS", "COIN", "ROKU", "UBER", "SNAP", "SNOW", "PLTR",
-            "BA", "GE", "F", "GM"
+            "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", 
+            "NVDA", "META", "NFLX", "DIS", "BA"
         ]
         
         stocks = self.get_multiple_stocks(symbols)
