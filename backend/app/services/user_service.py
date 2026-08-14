@@ -6,12 +6,12 @@ from app.schemas.user import UserCreate
 
 
 def get_user_by_email(db: Session, *, email: str):
-    return db.query(User).filter(User.email == email).first()
+    return db.query(User).filter(User.email == email.strip().lower()).first()
 
 
 def create_user(db: Session, *, user: UserCreate):
     db_user = User(
-        email=user.email,
+        email=user.email.strip().lower(),
         hashed_password=get_password_hash(user.password),
         full_name=user.full_name,
         username=user.username,

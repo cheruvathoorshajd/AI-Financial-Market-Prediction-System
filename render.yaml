@@ -5,7 +5,8 @@
     plan: free
     buildCommand: pip install -r backend/requirements.txt
     startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /api/v1/market/trending
+    # Use the lightweight /health endpoint so probes don't burn Alpha Vantage quota.
+    healthCheckPath: /health
     envVars:
       - key: SECRET_KEY
         generateValue: true
@@ -15,5 +16,14 @@
         value: 30
       - key: BACKEND_CORS_ORIGINS
         value: '[\"https://ai-financial-frontend.onrender.com\"]'
+      # Set a real key at https://www.alphavantage.co/support/#api-key
+      - key: ALPHA_VANTAGE_API_KEY
+        sync: false
+      # Optional: enables the natural-language insights assistant. Without it,
+      # the app falls back to a labelled heuristic explanation (still works).
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ANTHROPIC_MODEL
+        value: claude-opus-5
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.11.9

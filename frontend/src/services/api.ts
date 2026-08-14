@@ -4,6 +4,9 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  // Generous: /insights/outlook trains LSTMs on the server and is intentionally
+  // slow. This is a safety net for genuinely hung requests, not a tight budget.
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -28,9 +31,15 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Handle unauthorized access
       localStorage.removeItem('access_token');
-      window.location.href = '/login';
+      // The /auth/me probe 401s whenever the user is simply logged out or the
+      // token has expired — AuthContext treats that as "logged out". Don't bounce
+      // the user off a public page for it; only redirect when a genuine
+      // authenticated action fails on an expired session.
+      const url = error.config?.url ?? '';
+      if (!url.includes('/auth/me')) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

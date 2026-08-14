@@ -2,32 +2,214 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+  /* Chart roles (consumed by Recharts via lib/tokens.ts too) */
+  --surface-1: #ffffff;
+  --text-primary: #1c2b2a;
+  --text-secondary: #566360;
+  --text-muted: #6e7a76;
+  --grid: #e1e4dd;
+  --axis: #cdd2c8;
+  --accent: #2f6f63;
+  --pos: #2f6f63;
+  --neg: #a84c33;
+  --gold: #b08d3c;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    /* Fluid root size — every rem-based value (type, spacing, gaps, radii)
+       scales continuously with the viewport, so the whole UI adapts to the
+       current screen instead of snapping only at breakpoints. Bounded so it
+       never gets tiny on phones or oversized on 4K. */
+    font-size: clamp(15px, 0.875rem + 0.35vw, 18px);
+  }
+
+  body {
+    @apply bg-base text-ink font-sans antialiased;
+  }
+
+  /* Figures align in tables, tickers, and deltas. */
+  .tabular {
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+
+  ::selection {
+    background: rgba(47, 111, 99, 0.18);
+    color: #14201f;
+  }
+
+  /* Custom scrollbar — quiet, paper-toned. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cdd2c8 transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: #dfe2db;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: #cdd2c8;
+    background-clip: content-box;
+  }
+
+  /* Focus ring — accessible, on-brand (verdigris). */
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+@layer components {
+  /* Fluid page container: full-width with clamp gutters on small screens,
+     bounded by a soft max on large ones (centered), so ultrawide monitors are
+     used generously without letting line lengths run away. */
+  .container-app {
+    @apply mx-auto w-full;
+    max-width: 96rem;
+    padding-inline: clamp(1rem, 3vw, 2.75rem);
+  }
+
+  /* Fluid vertical rhythm between major page sections. */
+  .gap-fluid {
+    gap: clamp(1rem, 1rem + 1vw, 2rem);
+  }
+
+  /* Hairline card surface used across the app. */
+  .card {
+    @apply rounded-2xl border border-line bg-surface shadow-card;
+  }
+
+  /* Small uppercase ledger label, set in the mono voice. */
+  .eyebrow {
+    @apply font-mono text-2xs font-medium uppercase tracking-[0.16em] text-ink-muted;
+  }
+
+  /* Skeleton shimmer block. */
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-raised;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 animate-shimmer;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.7),
+      transparent
+    );
+  }
+}
+
 @layer utilities {
-  @keyframes shimmer {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
+  .text-balance {
+    text-wrap: balance;
   }
-  
-  @keyframes slideIn {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+  .text-pretty {
+    text-wrap: pretty;
   }
-  
-  .animate-shimmer {
-    animation: shimmer 2s infinite;
+  /* Dotted grid backdrop for hero / empty states. */
+  .bg-dotgrid {
+    background-image: radial-gradient(rgba(28, 43, 42, 0.06) 1px, transparent 1px);
+    background-size: 22px 22px;
   }
-  
-  .animate-slideIn {
-    animation: slideIn 0.3s ease-out;
+  .mask-fade-r {
+    -webkit-mask-image: linear-gradient(to right, black 80%, transparent);
+    mask-image: linear-gradient(to right, black 80%, transparent);
+  }
+}
+
+/* Honour reduced-motion globally: no shimmer, no long transitions. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Transitions ─────────────────────────────────────────── */
+/* Verdigris wipe — the sign-in / sign-out (auth) transition. */
+.auth-wipe {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  transform: translateX(-101%);
+  background: #2f6f63;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  pointer-events: none;
+}
+.auth-wipe__quote {
+  max-width: min(460px, 82vw);
+  text-align: center;
+  opacity: 0;
+}
+.auth-wipe__q {
+  font-family: 'Fraunces', Georgia, serif;
+  font-style: italic;
+  font-size: clamp(18px, 2.4vw, 22px);
+  line-height: 1.45;
+  color: #f4f5f2;
+}
+.auth-wipe__by {
+  margin-top: 14px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #e7c77a;
+}
+
+/* Flux line — the route / tab / feature transition. */
+.route-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  width: 0;
+  z-index: 60;
+  background: #2f6f63;
+  border-radius: 0 2px 2px 0;
+  box-shadow: 0 0 10px rgba(47, 111, 99, 0.5);
+  pointer-events: none;
+}
+.route-progress::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: -1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #b08d3c;
+  box-shadow: 0 0 8px rgba(176, 141, 60, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-wipe,
+  .route-progress {
+    display: none !important;
   }
 }

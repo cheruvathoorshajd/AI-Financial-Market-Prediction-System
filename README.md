@@ -1,370 +1,169 @@
-# 📊 FinTrack - AI Financial Tracker
+# Fluxus Fisci
 
-A modern, full-stack financial tracking application with real-time market data and AI-powered investment insights. Built with React, TypeScript, FastAPI, and a sleek black & white UI design.
+*Latin: "the flow of the treasury."*
 
-## ✨ Features
+A calm, literate companion for reading the markets — built for **understanding** rather than **transacting**. It helps you see what's moving and *why*, with an AI layer that shows its work and is honest about the limits of what it knows.
 
-### 📈 Real-Time Market Data
-- **Stock Market**: Live stock prices, trending stocks, top gainers/losers
-- **Cryptocurrency**: Real-time crypto market data and trends
-- **Forex**: Foreign exchange rates and currency pairs
-
-### 🤖 AI-Powered Insights
-- Technical analysis using price momentum, volume, and market cap
-- Smart investment recommendations (Strong Buy, Hold, Sell)
-- Confidence scores based on multiple market indicators
-- Real-time market analysis with automatic updates
-
-### 🔐 Secure Authentication
-- JWT-based authentication
-- Password hashing with bcrypt
-- Protected API endpoints
-- User profile management
-
-## 🚀 Deployment
-
-### 🌐 Deploy to Cloud (FREE)
-
-Want to make your project live and accessible to everyone? Choose your preferred platform:
-
-#### **Option 1: Railway + Vercel** (Recommended)
-📄 **[DEPLOYMENT.md](DEPLOYMENT.md)** - Railway backend + Vercel frontend
-- Railway: $5 free credits/month (~500 hours)
-- Vercel: 100% free forever
-- Deploy time: ~10 minutes
-
-#### **Option 2: Render** (More Free Hours)
-📄 **[DEPLOYMENT-RENDER.md](DEPLOYMENT-RENDER.md)** - All-in-one Render deployment
-- Render: 750 free hours/month
-- Free static site hosting
-- Deploy time: ~12 minutes
-
-**No credit card needed for either option!**
+> This repository began life as a generic AI stock tracker. It has been rebuilt into Fluxus Fisci as a portfolio flagship: a real, running product with a coherent point of view, a bespoke design system, and an AI layer that is genuinely defensible rather than a faked demo.
 
 ---
 
-## 💻 Local Development
+## 1. The problem
 
-### Prerequisites
+Most consumer finance apps are dopamine machines: gamified, trade-pushing, red-and-green anxiety engines optimized for engagement. They also tend to overstate their intelligence — a threshold on a moving average gets dressed up as a "neural network," and a heuristic becomes a confident "Strong Buy" with a fabricated accuracy score.
 
-Before you begin, ensure you have the following installed:
-- **Python 3.9 or higher** ([Download Python](https://www.python.org/downloads/))
-- **Node.js 16 or higher** ([Download Node.js](https://nodejs.org/))
-- **Git** ([Download Git](https://git-scm.com/downloads))
+That's two problems in one: it's stressful to use, and it's dishonest about what the software actually knows.
 
-### Installation
+## 2. The product point of view
 
-#### 1. Clone the Repository
+**Fluxus Fisci is the opposite.** One thesis runs through every decision:
 
-```bash
-git clone https://github.com/yourusername/fintrack.git
-cd fintrack
+> A financial tool should help you *understand*, not push you to *act*. The AI explains what's happening and why; it never tells you to buy or sell, and it's honest when it doesn't know.
+
+That single position does three things at once:
+
+- It's a real, defensible **design stance** — calm, instrument-like, literate.
+- It sidesteps the **financial-advice liability** baked into the original app — this is about literacy and comprehension, not recommendations.
+- It reframes the AI from a thin "buy/sell oracle" into a genuinely interesting design problem: **how do you present machine-generated insight so a person trusts it *appropriately* — neither blindly nor not at all?**
+
+## 3. What it is
+
+The surfaces, each designed with loading / empty / error / success states and responsive down to mobile:
+
+- **Onboarding** — a rich landing that states what the product is for, not a wall of form fields.
+- **Sign in / Register** — calm, single-window auth, fit-to-viewport (never clipped).
+- **Dashboard** — your daily read: market backdrop, portfolio snapshot, watchlist, and today's movers.
+- **Markets** — search by **ticker _or_ company name**, trending, and gainers/losers, each with a bespoke sparkline.
+- **Asset detail** — price history (custom chart), key stats, and the AI reading.
+- **Insights** — a grounded assistant you can ask questions of.
+- **Portfolio** — **editable** holdings, allocation, and P&L over cost basis, calmly visualized.
+- **Settings** — profile, password, watchlist, and session: a full account section.
+- **Design system** (`/design-system`) — the token, type, and data-viz language in one place.
+- **404** — a standalone, on-brand not-found page.
+
+### Signature interactions & novelties
+
+- **Compare assets** — put two or three assets side by side (price shape, the same labelled signals, an honest reading of each). Search by **name or ticker**; embedded inline under **Markets** (beside the search bar) and **Portfolio** (segmented with allocation, seeded from your largest holdings).
+- **⌘K command palette** — search assets and jump to any page from the keyboard, app-wide.
+- **Considered transitions** — a verdigris **wipe** over sign-in/out carrying a rotating, honestly-attributed financial quote; a **"flux-line" route-progress** bar between pages; and a **"Signed out" confirmation splash**. All gated behind `prefers-reduced-motion`.
+- **Live demo mode** — the **Live demo** button drops you into a seeded account that _announces itself_: a demo indicator + "Create account" CTA in the nav, a one-time **guided tour** of the differentiators, and **read-only guards** (disabled in the UI _and_ enforced server-side with `403`) so the shared demo can't be hijacked — while holdings and watchlist stay editable to explore.
+- **Editable, per-user data** — add/remove portfolio positions (with correct P/L over cost basis) and manage your watchlist; both persist per account.
+- **Fully-fluid responsive** — a clamp-based type & spacing scale so the whole UI scales _continuously_ with the viewport, not only at breakpoints.
+- **Consistent brand navigation** — the wordmark follows one rule everywhere: signed-in → Dashboard, signed-out → landing.
+
+## 4. Design decisions & why — "Patina"
+
+The direction is **Patina**: precise, quiet, instrument-like — the authority of well-made financial infrastructure (ledgers, fine measuring instruments, archival records) reinterpreted as something calm and human.
+
+It deliberately avoids the three "AI-default" looks that read as machine-generated on sight: cream + high-contrast serif + terracotta; near-black + a single acid-green accent; and hairline-rule broadsheet columns.
+
+| Decision | What | Why |
+|---|---|---|
+| **Palette** | Cool paper (`#F4F5F2`), deep ink-teal text, **verdigris** accent (`#2F6F63`), sparing treasury-gold | Light and calm, not the AI-default dark dashboard. Verdigris = patinated bronze — the "aged instrument" feeling. |
+| **Semantics** | Muted verdigris (up) / clay (down), never neon green / alarm red | A finance tool shouldn't be an anxiety engine. Direction is carried by arrows + sign, never hue alone (colour-vision safe). |
+| **Type** | **Fraunces** (display) + **IBM Plex Sans** (UI) + **IBM Plex Mono** (every figure) | A literate, human voice paired with an engineered, precise one. All numbers are tabular + lining — number typography is a first-class concern in a finance product. |
+| **Data viz** | Bespoke Recharts + inline-SVG sparklines; a 6-colour categorical palette **validated for contrast & colour-vision separation** on the light surface | No default chart-library styling. Identity in charts is always carried by a labelled legend, never colour alone. |
+| **Motion** | Figures ease into place; sections fade in; skeletons over spinners; a verdigris wipe over auth, a flux-line route-progress bar, and a sign-out confirmation splash | Motion aids comprehension of *change* and of *navigation*. All of it is gated behind `prefers-reduced-motion`. |
+| **States** | Every screen designed for loading / empty / error / success | The original had none. Errors say what happened and how to fix it; empty screens invite action in the product's voice. |
+| **Signature** | The **AI transparency panel** | Boldness is spent in one place — see §5. |
+
+Full reference, rendered live: **`/design-system`** in the running app.
+
+## 5. How the AI actually works (the honest part)
+
+This is the crux, and it is built to be **real, functional, transparent, and honest.** There are three distinct kinds of "intelligence" here, and the app labels each as exactly what it is:
+
+### a. Transparent heuristics — `backend/app/ml/signals.py`
+Plain, auditable arithmetic over the price history: momentum, price-vs-50-day-average, annualised volatility, RSI(14), and range position. These are **heuristics, and the UI says so.** They are never dressed up as a model or a prediction. They are the observable *facts* the assistant reasons over — and in the transparency panel, they're surfaced as "what it looked at," with their real values.
+
+### b. A grounded LLM call — `backend/app/ml/insights_service.py`
+When an `ANTHROPIC_API_KEY` is configured, the natural-language narrative (summary, reasoning, limits) is written by a **real Anthropic API call** (`claude-opus-5` by default), grounded *strictly* in the heuristic numbers computed in (a). The system prompt forbids it from inventing prices/news, forbids buy/sell/hold recommendations, and instructs it to be explicit about uncertainty. The narrative is labelled **"AI reading."**
+
+### c. An honest fallback — same file
+With **no key** (or on any API/SDK/network error), the assistant degrades gracefully to a deterministic explanation composed from the same signals, labelled **"Signals reading."** Nothing is faked; the app tells you which path produced the words you're reading.
+
+**Confidence is honest, too.** There is no fabricated "87% accurate." Confidence is a *qualitative* level (low / tentative / moderate) derived from how much the signals agree with each other, shown with its rationale.
+
+**What was removed:** the original app's `Strong Buy / Hold / Sell` recommendations, its "confidence scores," and a dead `TensorFlow` LSTM (`predictor.py`) that was never wired to any route but whose presence let the UI label a threshold heuristic as an "LSTM Neural Network." All gone.
+
+### Capability notes, in one line each
+- **LLM (real):** the insights narrative and free-form Q&A, when a key is set. Anthropic Messages API.
+- **Heuristic (labelled):** momentum / MA / volatility / RSI / range signals, and the qualitative confidence.
+- **External API:** market quotes from Alpha Vantage (free tier, ~25 req/day) with a graceful, clearly-labelled snapshot fallback — every response carries a `source: "live" | "snapshot"` field that the UI surfaces honestly.
+- **Not present:** any trained/proprietary model, any prediction of future price, any recommendation.
+
+## 6. Architecture & stack
+
+```
+backend/   FastAPI + SQLAlchemy (SQLite)
+  app/ml/         signals.py (heuristics) · insights_service.py (grounded LLM + fallback)
+  app/services/   market_service.py (Alpha Vantage + snapshot) · portfolio_service.py
+  app/api/        auth · users · market · portfolio · insights · watchlist
+  tests/          signals · grounding fallback · portfolio math
+frontend/  React 18 + TypeScript (strict) + Tailwind + Recharts + react-query
+  src/lib/        tokens · queries (data hooks) · format · errors · demo · useSignOut
+  src/context/    AuthContext · TransitionContext (the wipe + sign-out splash)
+  src/components/ ui/ (primitives) · charts/ · market/CompareSection · insights/InsightPanel (the signature)
+                  · layout/ · CommandPalette (⌘K) · DemoTour · RouteProgress
+  src/pages/      Onboarding · Login · Register · Dashboard · Markets · AssetDetail · Insights
+                  · Portfolio · Settings · DesignSystem · NotFound
 ```
 
-#### 2. Backend Setup
+Secrets stay **server-side** — the Anthropic and Alpha Vantage keys never enter the client bundle (the only client env var is the API base URL).
 
-Navigate to the backend directory and set up a virtual environment:
+**Auth token storage.** The JWT is kept in `localStorage` so the SPA can attach it as a bearer header. That trades a small XSS exposure (an injected script could read it) for simplicity; the app renders no untrusted HTML (no `dangerouslySetInnerHTML` anywhere), so there is no injection sink today. An `httpOnly` cookie would be stronger and is the natural next step beyond a portfolio demo.
 
+**Experimental LSTM.** The next-day forecaster (`/insights` outlook & per-asset forecast) needs PyTorch, which is intentionally left out of the free-tier deploy — it OOMs the build. It is imported lazily, so those views degrade to a labelled "model unavailable" when torch is absent; run `pip install torch` locally to enable them.
+
+## 7. Running it locally
+
+**Prerequisites:** Python 3.11+ and Node 18+.
+
+### Backend
 ```bash
-# Windows
 cd backend
 python -m venv venv
-venv\Scripts\activate
-
-# macOS/Linux
-cd backend
-python3 -m venv venv
-source venv/bin/activate
-```
-
-Install Python dependencies:
-
-```bash
+venv\Scripts\activate            # Windows  (source venv/bin/activate on macOS/Linux)
 pip install -r requirements.txt
+python init_db.py                # creates tables + a demo account
+python -m uvicorn app.main:app --reload --port 8000
 ```
-
-Create a `.env` file in the backend directory:
-
-```bash
-# backend/.env
-SECRET_KEY=your_super_secret_key_change_this_in_production
+Create `backend/.env` (git-ignored):
+```properties
+SECRET_KEY=change-me
 DATABASE_URL=sqlite:///./test.db
 ACCESS_TOKEN_EXPIRE_MINUTES=30
-BACKEND_CORS_ORIGINS=["http://localhost:3000"]
+BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:3001"]
+ALPHA_VANTAGE_API_KEY=your_key_or_leave_unset   # https://www.alphavantage.co/support/#api-key
+ANTHROPIC_API_KEY=your_key_or_leave_unset       # optional — enables the LLM narrative
+ANTHROPIC_MODEL=claude-opus-5                    # optional — e.g. claude-sonnet-5 for lower cost
 ```
-
-Initialize the database:
-
-```bash
-python init_db.py
-```
-
-#### 3. Frontend Setup
-
-Open a **new terminal** and navigate to the frontend directory:
-
-```bash
-cd frontend
-npm install
-```
-
-Create a `.env` file in the frontend directory:
-
-```bash
-# frontend/.env
-REACT_APP_API_URL=http://localhost:8000
-```
-
-### Running the Application
-
-#### Start Backend Server
-
-From the `backend` directory (with virtual environment activated):
-
-```bash
-# Windows
-python -m uvicorn app.main:app --reload
-
-# macOS/Linux
-python3 -m uvicorn app.main:app --reload
-```
-
-The backend API will be available at: **http://localhost:8000**
-
-#### Start Frontend Development Server
-
-From the `frontend` directory (in a new terminal):
-
-```bash
-npm start
-```
-
-The frontend application will open automatically at: **http://localhost:3000**
-
-### 🎉 You're Ready!
-
-1. Open your browser to **http://localhost:3000**
-2. Register a new account or use demo credentials:
-   - **Email**: `demo@fintrack.com`
-   - **Password**: `demo123`
-3. Explore the Markets, AI Insights, and Profile pages!
-
-## 📁 Project Structure
-
-```
-fintrack/
-├── backend/                 # FastAPI backend
-│   ├── app/
-│   │   ├── api/            # API routes and endpoints
-│   │   │   ├── endpoints/  # Auth, Users, Market endpoints
-│   │   │   └── api_v1/     # API version 1 router
-│   │   ├── core/           # Configuration and security
-│   │   ├── db/             # Database setup and session
-│   │   ├── models/         # SQLAlchemy database models
-│   │   ├── schemas/        # Pydantic schemas for validation
-│   │   ├── services/       # Business logic layer
-│   │   └── main.py         # FastAPI application entry point
-│   ├── .env                # Environment variables
-│   ├── init_db.py          # Database initialization script
-│   └── requirements.txt    # Python dependencies
-│
-├── frontend/               # React + TypeScript frontend
-│   ├── public/            # Static files
-│   ├── src/
-│   │   ├── components/    # Reusable React components
-│   │   │   ├── Layout.tsx # Main layout wrapper
-│   │   │   └── Sidebar.tsx # Navigation dropdown menu
-│   │   ├── pages/         # Page components
-│   │   │   ├── AIInsights.tsx    # AI recommendations page
-│   │   │   ├── Markets.tsx       # Market data page
-│   │   │   ├── Profile.tsx       # User profile page
-│   │   │   ├── Login.tsx         # Login page
-│   │   │   └── Register.tsx      # Registration page
-│   │   ├── services/      # API client services
-│   │   │   ├── api.ts                  # Axios API client
-│   │   │   ├── marketService.ts        # Market data service
-│   │   │   └── recommendationService.ts # AI recommendation engine
-│   │   ├── App.tsx        # Root component with routing
-│   │   ├── index.tsx      # React entry point
-│   │   └── index.css      # Global styles and animations
-│   ├── .env               # Frontend environment variables
-│   ├── package.json       # Node dependencies
-│   └── tailwind.config.js # Tailwind CSS configuration
-│
-├── .gitignore             # Git ignore rules
-└── README.md              # This file
-```
-
-## 🛠️ Tech Stack
-
-### Backend
-| Technology | Purpose |
-|-----------|---------|
-| **FastAPI** | High-performance async web framework |
-| **SQLAlchemy** | SQL toolkit and ORM |
-| **Pydantic** | Data validation and settings |
-| **JWT** | Token-based authentication |
-| **Bcrypt** | Password hashing |
-| **yfinance** | Yahoo Finance API for market data |
-| **SQLite** | Lightweight database (production: PostgreSQL) |
-
-### Frontend
-| Technology | Purpose |
-|-----------|---------|
-| **React 18** | UI library |
-| **TypeScript** | Type-safe JavaScript |
-| **React Router** | Client-side routing |
-| **Axios** | HTTP client |
-| **Tailwind CSS** | Utility-first CSS framework |
-| **Framer Motion** | Animation library |
-
-## 🔌 API Documentation
-
-Once the backend is running, visit:
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-
-### Key Endpoints
-
-#### Authentication
-```
-POST   /api/v1/auth/register          # Register new user
-POST   /api/v1/auth/login             # Login user
-GET    /api/v1/auth/me                # Get current user
-```
-
-#### Market Data
-```
-GET    /api/v1/market/stocks/trending        # Get trending stocks
-GET    /api/v1/market/stocks/movers          # Get top gainers/losers
-GET    /api/v1/market/stocks/search?q=AAPL   # Search stocks
-GET    /api/v1/market/stock/{symbol}         # Get stock details
-```
-
-#### User
-```
-GET    /api/v1/users/me               # Get user profile
-PUT    /api/v1/users/me               # Update user profile
-```
-
-
-## 🧪 Testing
-
-### Backend Tests
-```bash
-cd backend
-pytest
-```
-
-### Frontend Tests
-```bash
-cd frontend
-npm test
-```
-
-## 📦 Building for Production
-
-### Backend
-```bash
-cd backend
-pip install gunicorn
-gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker
-```
+Neither API key is required to run — the app falls back to labelled snapshot data and a heuristic reading.
 
 ### Frontend
 ```bash
 cd frontend
-npm run build
+npm install                      # installs from the committed package-lock.json
+npm start                        # http://localhost:3000
 ```
-
-The production build will be in the `frontend/build` directory.
-
-## 🌍 Environment Variables
-
-### Backend (.env)
+`frontend/.env`:
 ```properties
-SECRET_KEY=your_secret_key_here
-DATABASE_URL=sqlite:///./test.db
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-BACKEND_CORS_ORIGINS=["http://localhost:3000"]
+REACT_APP_API_URL=http://localhost:8000/api/v1
 ```
 
-### Frontend (.env)
-```properties
-REACT_APP_API_URL=http://localhost:8000
-```
+**Demo account:** `demo@fluxusfisci.app` / `demo1234` — or the **Live demo** button on the landing / sign-in, which starts the self-announcing, guided demo mode (see §3). The demo account is read-only for profile & password (enforced server-side) so it stays working for everyone; its holdings and watchlist remain editable.
 
-## 🐛 Troubleshooting
+## 8. Testing
 
-### Backend Issues
-
-**Port 8000 already in use:**
 ```bash
-# Windows
-netstat -ano | findstr :8000
-taskkill /PID <PID> /F
-
-# macOS/Linux
-lsof -ti:8000 | xargs kill -9
+cd backend && pytest              # signals, AI grounding fallback, portfolio math
+cd frontend && npx tsc --noEmit   # TypeScript strict typecheck
 ```
 
-**Database errors:**
-```bash
-# Delete and reinitialize database
-rm backend/test.db
-python backend/init_db.py
-```
+## 9. Honest capability notes (summary)
 
-### Frontend Issues
-
-**Module not found errors:**
-```bash
-cd frontend
-rm -rf node_modules package-lock.json
-npm install
-```
-
-**Port 3000 already in use:**
-```bash
-# Set different port
-# Windows
-set PORT=3001 && npm start
-
-# macOS/Linux
-PORT=3001 npm start
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 👨‍💻 Author
-
-**Dennis Sharon**
-- Email: cheruvathoorshaj.d@northeastern.edu
-
-## 🙏 Acknowledgments
-
-- [FastAPI](https://fastapi.tiangolo.com/) for the amazing Python web framework
-- [React](https://react.dev/) for the powerful UI library
-- [Tailwind CSS](https://tailwindcss.com/) for the utility-first CSS framework
-- [Yahoo Finance](https://finance.yahoo.com/) for market data
-
-## 📞 Support
-
-If you have any questions or need help, please:
-- Open an issue on GitHub
-- Email: cheruvathoorshaj.d@northeastern.edu
+Nothing here predicts the market. The app computes transparent technical signals, optionally has a language model *explain* them in plain English (grounded only in those numbers), and is explicit — in the UI and in this document — about what is a heuristic, what is an API call, and what is an LLM call. **It is for understanding, not recommendations. Nothing in it is financial advice.**
 
 ---
 
+*Designed & built by Dennis Sharon.*

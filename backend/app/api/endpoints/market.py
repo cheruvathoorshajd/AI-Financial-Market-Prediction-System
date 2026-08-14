@@ -1,53 +1,60 @@
+from typing import Literal
+
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
-from app.services.market_service import market_service
+
+from app.services.market_service import market_service, _aggregate_source
 
 router = APIRouter()
 
+
 @router.get("/stock/{symbol}")
-async def get_stock(symbol: str):
-    """Get current price and info for a single stock"""
+def get_stock(symbol: str):
+    """Current price and info for a single stock (live or snapshot)."""
     data = market_service.get_stock_price(symbol)
     if not data:
         raise HTTPException(status_code=404, detail=f"Stock {symbol} not found")
     return data
 
+
 @router.get("/stocks")
-async def get_stocks(symbols: str = Query(..., description="Comma-separated stock symbols")):
-    """Get current prices for multiple stocks"""
-    symbol_list = [s.strip() for s in symbols.split(",")]
-    return market_service.get_multiple_stocks(symbol_list)
+def get_stocks(symbols: str = Query(..., description="Comma-separated symbols")):
+    """Current prices for multiple stocks."""
+    symbol_list = [s.strip() for s in symbols.split(",") if s.strip()][:25]
+    stocks = market_service.get_multiple_stocks(symbol_list)
+    return {"stocks": stocks, "source": _aggregate_source(stocks)}
+
 
 @router.get("/indices")
-async def get_indices():
-    """Get major market indices (S&P 500, NASDAQ, DOW)"""
+def get_indices():
+    """Major market indices (S&P 500, NASDAQ, Dow)."""
     return market_service.get_market_indices()
 
+
 @router.get("/trending")
-async def get_trending(limit: int = Query(10, ge=1, le=20)):
-    """Get trending stocks"""
+def get_trending(limit: int = Query(8, ge=1, le=12)):
+    """Trending stocks, ranked by absolute daily move."""
     return market_service.get_trending_stocks(limit)
 
+
 @router.get("/movers")
-async def get_movers():
-    """Get top gainers and losers"""
+def get_movers():
+    """Top gainers and losers."""
     return market_service.get_top_gainers_losers()
 
+
 @router.get("/history/{symbol}")
-async def get_history(
+def get_history(
     symbol: str,
-    period: str = Query("1mo", description="Period: 1d, 5d, 1mo, 3mo, 6mo, 1y, 2y, 5y, 10y, ytd, max")
+    period: Literal["1mo", "3mo", "6mo", "1y"] = Query("6mo"),
 ):
-    """Get historical price data for a stock"""
-    history = market_service.get_stock_history(symbol, period)
-    if not history:
+    """Historical daily prices for a stock."""
+    result = market_service.get_stock_history(symbol, period)
+    if not result["history"]:
         raise HTTPException(status_code=404, detail=f"No history found for {symbol}")
-    return history
+    return result
+
 
 @router.get("/search")
-async def search_stocks(q: str = Query(..., min_length=1)):
-    """Search for stocks by symbol or name"""
-    results = market_service.search_stocks(q)
-    if not results:
-        return {"message": "No stocks found", "results": []}
-    return {"results": results}
+def search_stocks(q: str = Query(..., min_length=1, max_length=64)):
+    """Search stocks by symbol or name."""
+    return market_service.search_stocks(q)

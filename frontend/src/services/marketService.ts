@@ -1,8 +1,11 @@
 import api from './api';
 
-export interface StockData {
+export type DataSource = 'live' | 'snapshot' | 'mixed';
+
+export interface Quote {
   symbol: string;
   name: string;
+  sector?: string | null;
   price: number;
   change: number;
   changePercent: number;
@@ -10,20 +13,23 @@ export interface StockData {
   high: number;
   low: number;
   volume: number;
-  marketCap?: number;
+  marketCap?: number | null;
   timestamp: string;
+  source: DataSource;
+  /** Optional down-sampled close series for a sparkline (present on trending). */
+  spark?: number[];
 }
 
-export interface IndexData {
+export interface IndexQuote {
   symbol: string;
   name: string;
   value: number;
   change: number;
   changePercent: number;
-  timestamp: string;
+  source: DataSource;
 }
 
-export interface HistoryData {
+export interface HistoryPoint {
   date: string;
   open: number;
   high: number;
@@ -32,48 +38,75 @@ export interface HistoryData {
   volume: number;
 }
 
-export interface MoversData {
-  gainers: StockData[];
-  losers: StockData[];
+export interface Trending {
+  stocks: Quote[];
+  source: DataSource;
+}
+export interface Movers {
+  gainers: Quote[];
+  losers: Quote[];
+  source: DataSource;
+}
+export interface Indices {
+  indices: IndexQuote[];
+  source: DataSource;
+}
+export interface History {
+  symbol: string;
+  history: HistoryPoint[];
+  source: DataSource;
+}
+export interface SearchResults {
+  results: Quote[];
+  source: DataSource;
 }
 
+/**
+ * Market data client. Every endpoint carries an honest `source` field
+ * ("live" | "snapshot" | "mixed"); the UI surfaces it rather than hiding it.
+ */
 class MarketService {
-  async getStock(symbol: string): Promise<StockData> {
-    const response = await api.get(`/market/stock/${symbol}`);
-    return response.data;
+  async getStock(symbol: string): Promise<Quote> {
+    const { data } = await api.get<Quote>(`/market/stock/${encodeURIComponent(symbol)}`);
+    return data;
   }
 
-  async getStocks(symbols: string[]): Promise<StockData[]> {
-    const symbolsStr = symbols.join(',');
-    const response = await api.get(`/market/stocks?symbols=${symbolsStr}`);
-    return response.data;
+  async getStocks(symbols: string[]): Promise<Trending> {
+    const { data } = await api.get<Trending>(
+      `/market/stocks?symbols=${encodeURIComponent(symbols.join(','))}`
+    );
+    return data;
   }
 
-  async getIndices(): Promise<IndexData[]> {
-    const response = await api.get('/market/indices');
-    return response.data;
+  async getIndices(): Promise<Indices> {
+    const { data } = await api.get<Indices>('/market/indices');
+    return data;
   }
 
-  async getTrending(limit: number = 10): Promise<StockData[]> {
-    const response = await api.get(`/market/trending?limit=${limit}`);
-    return response.data;
+  async getTrending(limit = 8): Promise<Trending> {
+    const { data } = await api.get<Trending>(`/market/trending?limit=${limit}`);
+    return data;
   }
 
-  async getMovers(): Promise<MoversData> {
-    const response = await api.get('/market/movers');
-    return response.data;
+  async getMovers(): Promise<Movers> {
+    const { data } = await api.get<Movers>('/market/movers');
+    return data;
   }
 
-  async getHistory(symbol: string, period: string = '1mo'): Promise<HistoryData[]> {
-    const response = await api.get(`/market/history/${symbol}?period=${period}`);
-    return response.data;
+  async getHistory(symbol: string, period = '6mo'): Promise<History> {
+    const { data } = await api.get<History>(
+      `/market/history/${encodeURIComponent(symbol)}?period=${period}`
+    );
+    return data;
   }
 
-  async searchStocks(query: string): Promise<StockData[]> {
-    const response = await api.get(`/market/search?q=${encodeURIComponent(query)}`);
-    return response.data.results;
+  async search(query: string): Promise<SearchResults> {
+    const { data } = await api.get<SearchResults>(
+      `/market/search?q=${encodeURIComponent(query)}`
+    );
+    return data;
   }
 }
 
-const marketServiceInstance = new MarketService();
-export default marketServiceInstance;
+const marketService = new MarketService();
+export default marketService;

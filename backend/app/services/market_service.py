@@ -1,381 +1,230 @@
-from alpha_vantage.timeseries import TimeSeries
-import requests
-import os
-from typing import List, Dict, Optional
+"""
+Market data service. Tries live Alpha Vantage first, then falls back to a
+realistic saved snapshot when the free-tier quota is exhausted or a symbol is
+unavailable. Every response carries a ``source`` field ("live" | "snapshot")
+so the UI can be honest about what the user is looking at.
+"""
+import time
 from datetime import datetime, timedelta
-import pandas as pd
+from typing import Dict, List, Optional
+
+import requests
+
+from app.core.config import settings
+from app.data import seed
+
+
+def _aggregate_source(items: List[dict]) -> str:
+    """Roll up per-item sources into live / snapshot / mixed."""
+    srcs = {i.get("source", "snapshot") for i in items if i}
+    if not srcs:
+        return "snapshot"
+    if srcs == {"live"}:
+        return "live"
+    if srcs == {"snapshot"}:
+        return "snapshot"
+    return "mixed"
+
 
 class MarketService:
-    """Service for fetching real-time market data using Alpha Vantage API"""
-    
+    """Fetch market data with graceful live→snapshot fallback."""
+
     def __init__(self):
-        self.api_key = os.getenv("ALPHA_VANTAGE_API_KEY", "UP4DUV2FAQA27ENY")
-        self.ts = TimeSeries(key=self.api_key, output_format='pandas')
+        self.api_key = settings.ALPHA_VANTAGE_API_KEY
         self.base_url = "https://www.alphavantage.co/query"
-        self.cache = {}
-        self.cache_duration = timedelta(minutes=5)  # Cache data for 5 minutes
-    
-    def get_stock_price(self, symbol: str) -> Optional[Dict]:
-        """Get current price and basic info for a single stock"""
+        self.cache: Dict[str, tuple] = {}
+        # Alpha Vantage free tier is ~25 requests/day, so cache aggressively.
+        self.cache_duration = timedelta(minutes=30)
+        # When we hit a rate limit, stop calling the API for a cooldown so the
+        # whole app doesn't crawl through 10 slow failing requests.
+        self._live_disabled_until: Optional[datetime] = None
+        self._cooldown = timedelta(minutes=15)
+
+    # ---------------------------------------------------------------- helpers
+    def _live_enabled(self) -> bool:
+        if not self.api_key or self.api_key == "demo":
+            return False
+        if self._live_disabled_until and datetime.now() < self._live_disabled_until:
+            return False
+        return True
+
+    def _trip_cooldown(self, reason: str):
+        self._live_disabled_until = datetime.now() + self._cooldown
+        print(f"Alpha Vantage live data disabled for {self._cooldown} — {reason}")
+
+    def _enrich(self, quote: dict) -> dict:
+        """Attach name/sector from the reference set when available."""
+        row = seed.SNAPSHOT.get(quote["symbol"].upper())
+        if row:
+            quote["name"] = row["name"]
+            quote["sector"] = row.get("sector")
+            quote.setdefault("marketCap", row.get("marketCap"))
+        return quote
+
+    # ----------------------------------------------------------------- quotes
+    def _fetch_live_quote(self, symbol: str) -> Optional[dict]:
+        if not self._live_enabled():
+            return None
         try:
-            # Check cache first
-            cache_key = f"{symbol}_quote"
-            if cache_key in self.cache:
-                cached_data, cached_time = self.cache[cache_key]
-                if datetime.now() - cached_time < self.cache_duration:
-                    return cached_data
-            
-            # Get quote data from Alpha Vantage
-            params = {
-                "function": "GLOBAL_QUOTE",
-                "symbol": symbol,
-                "apikey": self.api_key
-            }
-            response = requests.get(self.base_url, params=params, timeout=10)
-            data = response.json()
-            
-            # Check for API error messages
+            params = {"function": "GLOBAL_QUOTE", "symbol": symbol, "apikey": self.api_key}
+            resp = requests.get(self.base_url, params=params, timeout=8)
+            data = resp.json()
+
+            if "Note" in data or "Information" in data:
+                self._trip_cooldown("rate limit")
+                return None
             if "Error Message" in data:
-                print(f"Alpha Vantage Error for {symbol}: {data['Error Message']}")
                 return None
-            
-            if "Note" in data:
-                print(f"Alpha Vantage Rate Limit: {data['Note']}")
-                return None
-            
-            if "Global Quote" not in data or not data["Global Quote"]:
-                print(f"No data returned for {symbol}. Response: {data}")
-                return None
-            
-            quote = data["Global Quote"]
-            
-            # Check if quote is empty
+
+            quote = data.get("Global Quote") or {}
             if not quote or "05. price" not in quote:
-                print(f"Empty quote data for {symbol}")
                 return None
-            
-            current_price = float(quote.get("05. price", 0))
-            open_price = float(quote.get("02. open", 0))
+
+            price = float(quote.get("05. price", 0))
             change = float(quote.get("09. change", 0))
-            change_percent_str = quote.get("10. change percent", "0%").replace("%", "")
-            change_percent = float(change_percent_str)
-            
+            pct = float(quote.get("10. change percent", "0%").replace("%", ""))
             result = {
                 "symbol": symbol.upper(),
-                "name": symbol.upper(),  # Will use symbol as name to save API calls
-                "price": round(current_price, 2),
+                "name": symbol.upper(),
+                "price": round(price, 2),
                 "change": round(change, 2),
-                "changePercent": round(change_percent, 2),
-                "open": round(open_price, 2),
+                "changePercent": round(pct, 2),
+                "open": round(float(quote.get("02. open", 0)), 2),
                 "high": round(float(quote.get("03. high", 0)), 2),
                 "low": round(float(quote.get("04. low", 0)), 2),
-                "volume": int(quote.get("06. volume", 0)),
-                "marketCap": None,  # Market cap requires extra API call
-                "timestamp": datetime.now().isoformat()
+                "volume": int(float(quote.get("06. volume", 0))),
+                "marketCap": None,
+                "sector": None,
+                "timestamp": datetime.now().isoformat(),
+                "source": "live",
             }
-            
-            # Cache the result
-            self.cache[cache_key] = (result, datetime.now())
-            
-            print(f"Successfully fetched data for {symbol}: ${current_price}")
-            return result
-        except Exception as e:
-            print(f"Error fetching data for {symbol}: {str(e)}")
-            import traceback
-            traceback.print_exc()
+            return self._enrich(result)
+        except Exception as e:  # network / parse errors → fall back
+            print(f"Live quote error for {symbol}: {e}")
             return None
-    
-    def get_multiple_stocks(self, symbols: List[str]) -> List[Dict]:
-        """Get current prices for multiple stocks"""
-        results = []
+
+    def get_stock_price(self, symbol: str, allow_live: bool = True) -> Optional[dict]:
+        """
+        Fetch a quote. ``allow_live`` gates whether this call may spend part of
+        the tiny Alpha Vantage daily budget — browse lists pass ``False`` and
+        serve the snapshot, so the quota is reserved for the asset the user is
+        actually looking at. Only live results are cached (snapshot is
+        deterministic and free), so a snapshot never shadows a later live fetch.
+        """
+        symbol = (symbol or "").strip().upper()
+        cache_key = f"{symbol}_quote"
+        if cache_key in self.cache:
+            cached, ts = self.cache[cache_key]
+            if datetime.now() - ts < self.cache_duration:
+                return cached
+
+        result = None
+        if allow_live:
+            result = self._fetch_live_quote(symbol)
+            if result:
+                self.cache[cache_key] = (result, datetime.now())
+        if not result:
+            result = seed.snapshot_quote(symbol)
+        return result
+
+    def get_multiple_stocks(self, symbols: List[str], allow_live: bool = True) -> List[dict]:
+        results: List[dict] = []
         for i, symbol in enumerate(symbols):
-            data = self.get_stock_price(symbol)
+            data = self.get_stock_price(symbol, allow_live=allow_live)
             if data:
                 results.append(data)
-            # Add small delay between API calls to avoid rate limiting
-            if i < len(symbols) - 1:  # Don't delay after last one
-                import time
-                time.sleep(0.5)  # 500ms delay between calls
+            # Only throttle when we're actually calling the live API.
+            if allow_live and self._live_enabled() and i < len(symbols) - 1:
+                time.sleep(0.4)
         return results
-    
-    def get_market_indices(self) -> List[Dict]:
-        """Get major market indices - using ETFs as proxy"""
-        # Using popular ETFs as proxy for indices
+
+    # ---------------------------------------------------------------- indices
+    def get_market_indices(self) -> dict:
         indices = {
-            "SPY": "S&P 500",
-            "QQQ": "NASDAQ-100",
-            "DIA": "DOW JONES"
+            "SPY": ("S&P 500", 6321.44, 0.41),
+            "QQQ": ("NASDAQ-100", 561.28, 0.63),
+            "DIA": ("Dow Jones", 451.90, 0.19),
         }
-        
         results = []
-        for symbol, name in indices.items():
-            try:
-                stock_data = self.get_stock_price(symbol)
-                if stock_data:
-                    results.append({
-                        "symbol": symbol,
-                        "name": name,
-                        "value": stock_data["price"],
-                        "change": stock_data["change"],
-                        "changePercent": stock_data["changePercent"],
-                        "timestamp": datetime.now().isoformat()
-                    })
-            except Exception as e:
-                print(f"Error fetching index {symbol}: {str(e)}")
-                continue
-        
-        return results
-    
-    def get_trending_stocks(self, limit: int = 10) -> List[Dict]:
-        """Get trending stocks (using predefined popular stocks)"""
-        # Popular stocks to show as "trending" - reduced to 5 to avoid rate limits
-        popular_symbols = [
-            "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA"
-        ]
-        
-        # Only fetch up to 5 stocks to save API calls
-        fetch_limit = min(limit, 5)
-        stocks = self.get_multiple_stocks(popular_symbols[:fetch_limit])
-        # Sort by absolute change percent to show most volatile
-        return sorted(stocks, key=lambda x: abs(x.get('changePercent', 0)), reverse=True)
-    
-    def get_top_gainers_losers(self) -> Dict[str, List[Dict]]:
-        """Get top gaining and losing stocks"""
-        # Reduced list of popular stocks to avoid rate limits
-        symbols = [
-            "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", 
-            "NVDA", "META", "NFLX", "DIS", "BA"
-        ]
-        
-        stocks = self.get_multiple_stocks(symbols)
-        
-        # Sort by change percent
-        sorted_stocks = sorted(stocks, key=lambda x: x.get('changePercent', 0), reverse=True)
-        
-        return {
-            "gainers": sorted_stocks[:5],  # Top 5 gainers
-            "losers": sorted_stocks[-5:]   # Top 5 losers
-        }
-    
-    def get_stock_history(self, symbol: str, period: str = "1mo") -> List[Dict]:
-        """Get historical price data for a stock"""
-        try:
-            # Alpha Vantage doesn't use period strings, use compact for recent data
-            outputsize = "compact"  # Last 100 data points
-            
-            # Get daily data
-            data, meta_data = self.ts.get_daily(symbol=symbol, outputsize=outputsize)
-            
-            history = []
-            for date, row in data.iterrows():
-                history.append({
-                    "date": date.strftime("%Y-%m-%d"),
-                    "open": round(float(row['1. open']), 2),
-                    "high": round(float(row['2. high']), 2),
-                    "low": round(float(row['3. low']), 2),
-                    "close": round(float(row['4. close']), 2),
-                    "volume": int(row['5. volume'])
+        source = "snapshot"
+        for symbol, (name, fallback_val, fallback_pct) in indices.items():
+            # Ambient backdrop — snapshot, so the scarce live budget stays with
+            # the asset the user opens and their watchlist.
+            live = self.get_stock_price(symbol, allow_live=False)
+            if live and live.get("source") == "live":
+                results.append({
+                    "symbol": symbol, "name": name, "value": live["price"],
+                    "change": live["change"], "changePercent": live["changePercent"],
+                    "source": "live",
                 })
-            
-            # Sort by date ascending (oldest first)
-            history.reverse()
-            
-            return history
-        except Exception as e:
-            print(f"Error fetching history for {symbol}: {str(e)}")
-            return []
-    
-    def search_stocks(self, query: str) -> List[Dict]:
-        """Search for stocks by symbol or name"""
-        if not query or len(query.strip()) == 0:
-            return []
-        
-        query = query.strip()
-        results = []
-        
-        # First, try to search as a direct symbol
-        try:
-            # Try the query as a direct ticker symbol
-            stock_data = self.get_stock_price(query.upper())
-            if stock_data:
-                results.append(stock_data)
-        except:
-            pass
-        
-        # If query is less than 3 characters and we found a direct match, return it
-        if len(query) < 3 and results:
-            return results
-        
-        # Search in a comprehensive list of common stocks
-        common_stocks = {
-            # Tech Giants
-            "AAPL": "Apple Inc.",
-            "GOOGL": "Alphabet Inc.",
-            "GOOG": "Alphabet Inc. Class C",
-            "MSFT": "Microsoft Corporation",
-            "AMZN": "Amazon.com Inc.",
-            "META": "Meta Platforms Inc.",
-            "NVDA": "NVIDIA Corporation",
-            "TSLA": "Tesla Inc.",
-            "AMD": "Advanced Micro Devices",
-            "INTC": "Intel Corporation",
-            "CRM": "Salesforce Inc.",
-            "ORCL": "Oracle Corporation",
-            "ADBE": "Adobe Inc.",
-            "NFLX": "Netflix Inc.",
-            "AVGO": "Broadcom Inc.",
-            
-            # Financial
-            "JPM": "JPMorgan Chase & Co.",
-            "BAC": "Bank of America Corp",
-            "WFC": "Wells Fargo & Company",
-            "GS": "Goldman Sachs Group",
-            "MS": "Morgan Stanley",
-            "C": "Citigroup Inc.",
-            "BLK": "BlackRock Inc.",
-            "AXP": "American Express Company",
-            "V": "Visa Inc.",
-            "MA": "Mastercard Inc.",
-            "PYPL": "PayPal Holdings Inc.",
-            "BRK.B": "Berkshire Hathaway Inc.",
-            "SQ": "Block Inc.",
-            "COIN": "Coinbase Global Inc.",
-            
-            # Retail & Consumer
-            "WMT": "Walmart Inc.",
-            "COST": "Costco Wholesale Corp",
-            "HD": "The Home Depot Inc.",
-            "TGT": "Target Corporation",
-            "LOW": "Lowe's Companies Inc.",
-            "NKE": "Nike Inc.",
-            "SBUX": "Starbucks Corporation",
-            "MCD": "McDonald's Corporation",
-            "DIS": "The Walt Disney Company",
-            "CMCSA": "Comcast Corporation",
-            
-            # Healthcare & Pharma
-            "JNJ": "Johnson & Johnson",
-            "UNH": "UnitedHealth Group",
-            "PFE": "Pfizer Inc.",
-            "ABBV": "AbbVie Inc.",
-            "TMO": "Thermo Fisher Scientific",
-            "ABT": "Abbott Laboratories",
-            "MRK": "Merck & Co. Inc.",
-            "LLY": "Eli Lilly and Company",
-            "BMY": "Bristol-Myers Squibb",
-            "AMGN": "Amgen Inc.",
-            
-            # Industrial & Manufacturing
-            "BA": "Boeing Company",
-            "GE": "General Electric Company",
-            "CAT": "Caterpillar Inc.",
-            "MMM": "3M Company",
-            "HON": "Honeywell International",
-            "UPS": "United Parcel Service",
-            "FDX": "FedEx Corporation",
-            "LMT": "Lockheed Martin Corp",
-            "RTX": "Raytheon Technologies",
-            
-            # Automotive
-            "F": "Ford Motor Company",
-            "GM": "General Motors Company",
-            "RIVN": "Rivian Automotive Inc.",
-            "LCID": "Lucid Group Inc.",
-            
-            # Energy
-            "XOM": "Exxon Mobil Corporation",
-            "CVX": "Chevron Corporation",
-            "COP": "ConocoPhillips",
-            "SLB": "Schlumberger Limited",
-            "EOG": "EOG Resources Inc.",
-            
-            # Communications & Social
-            "T": "AT&T Inc.",
-            "VZ": "Verizon Communications",
-            "TMUS": "T-Mobile US Inc.",
-            "SNAP": "Snap Inc.",
-            "SPOT": "Spotify Technology",
-            "UBER": "Uber Technologies",
-            "LYFT": "Lyft Inc.",
-            "DASH": "DoorDash Inc.",
-            
-            # Semiconductors
-            "TSM": "Taiwan Semiconductor",
-            "ASML": "ASML Holding N.V.",
-            "QCOM": "QUALCOMM Inc.",
-            "TXN": "Texas Instruments",
-            "MU": "Micron Technology",
-            
-            # Software & Cloud
-            "NOW": "ServiceNow Inc.",
-            "SNOW": "Snowflake Inc.",
-            "DDOG": "Datadog Inc.",
-            "ZM": "Zoom Video Communications",
-            "TEAM": "Atlassian Corporation",
-            "WDAY": "Workday Inc.",
-            "PLTR": "Palantir Technologies",
-            
-            # E-commerce & Payments
-            "SHOP": "Shopify Inc.",
-            "EBAY": "eBay Inc.",
-            "BABA": "Alibaba Group",
-            "PDD": "PDD Holdings Inc.",
-            
-            # Gaming & Entertainment
-            "RBLX": "Roblox Corporation",
-            "EA": "Electronic Arts Inc.",
-            "ATVI": "Activision Blizzard",
-            "TTWO": "Take-Two Interactive",
-            "ROKU": "Roku Inc.",
-            
-            # Consumer Goods
-            "PG": "Procter & Gamble Co.",
-            "KO": "The Coca-Cola Company",
-            "PEP": "PepsiCo Inc.",
-            "PM": "Philip Morris International",
-            "CL": "Colgate-Palmolive Company",
+                source = "mixed" if source == "snapshot" and results[:-1] else source
+            else:
+                change = round(fallback_val * fallback_pct / 100, 2)
+                results.append({
+                    "symbol": symbol, "name": name, "value": fallback_val,
+                    "change": change, "changePercent": fallback_pct, "source": "snapshot",
+                })
+        return {"indices": results, "source": _aggregate_source(results)}
+
+    # -------------------------------------------------------- trending/movers
+    def get_trending_stocks(self, limit: int = 8) -> dict:
+        symbols = ["NVDA", "AAPL", "TSLA", "PLTR", "MSFT", "AMZN", "META", "AMD"]
+        # Browse list — snapshot, to preserve the tiny live budget for the
+        # single asset the user opens.
+        stocks = self.get_multiple_stocks(symbols[:limit], allow_live=False)
+        # Attach a snapshot sparkline series so cards don't each fetch history
+        # (avoids an N+1 request fan-out on the trending grid).
+        for stock in stocks:
+            stock["spark"] = seed.spark_series(stock["symbol"])
+        stocks.sort(key=lambda x: abs(x.get("changePercent", 0)), reverse=True)
+        return {"stocks": stocks, "source": _aggregate_source(stocks)}
+
+    def get_top_gainers_losers(self) -> dict:
+        # ~24 symbols — always snapshot; fetching these live would exhaust the
+        # entire daily Alpha Vantage quota in a single request.
+        stocks = self.get_multiple_stocks(seed.all_symbols(), allow_live=False)
+        ranked = sorted(stocks, key=lambda x: x.get("changePercent", 0), reverse=True)
+        return {
+            "gainers": ranked[:5],
+            "losers": list(reversed(ranked[-5:])),
+            "source": _aggregate_source(stocks),
         }
-        
-        query_lower = query.lower()
-        query_upper = query.upper()
-        
-        # Search through the common stocks
-        for symbol, name in common_stocks.items():
-            # Skip if already in results
-            if results and results[0]['symbol'] == symbol:
+
+    # ---------------------------------------------------------------- history
+    def get_stock_history(self, symbol: str, period: str = "6mo") -> dict:
+        symbol = symbol.upper()
+        days = {"1mo": 30, "3mo": 90, "6mo": 180, "1y": 365}.get(period, 180)
+        # Live daily history requires the TIME_SERIES_DAILY endpoint; on the
+        # free tier this is almost always rate-limited, so we serve the
+        # deterministic snapshot series (clearly labelled) for a stable demo.
+        history = seed.snapshot_history(symbol, days=days)
+        return {"symbol": symbol, "history": history, "source": "snapshot"}
+
+    # ----------------------------------------------------------------- search
+    def search_stocks(self, query: str) -> dict:
+        query = (query or "").strip()
+        if not query:
+            return {"results": [], "source": "snapshot"}
+
+        q_upper = query.upper()
+        q_lower = query.lower()
+        matches: List[str] = []
+
+        # Exact symbol first.
+        if q_upper in seed.SNAPSHOT:
+            matches.append(q_upper)
+        # Then symbol-prefix and name-substring matches.
+        for sym, row in seed.SNAPSHOT.items():
+            if sym in matches:
                 continue
-                
-            # Match by symbol or name
-            if (query_upper in symbol or 
-                query_lower in name.lower() or
-                any(word.startswith(query_lower) for word in name.lower().split())):
-                
-                stock_data = self.get_stock_price(symbol)
-                if stock_data:
-                    results.append(stock_data)
-                    
-                # Limit to 15 results
-                if len(results) >= 15:
-                    break
-        
-        # If still no results and query looks like a symbol (short and uppercase-ish)
-        # Try a few variations
-        if not results and len(query) <= 5:
-            variations = [
-                query.upper(),
-                f"{query.upper()}",
-            ]
-            
-            for variant in variations:
-                try:
-                    stock_data = self.get_stock_price(variant)
-                    if stock_data:
-                        results.append(stock_data)
-                        break
-                except:
-                    continue
-        
-        return results
+            if q_upper in sym or q_lower in row["name"].lower():
+                matches.append(sym)
+            if len(matches) >= 12:
+                break
+
+        results = self.get_multiple_stocks(matches, allow_live=False)
+        return {"results": results, "source": _aggregate_source(results)}
+
 
 # Singleton instance
 market_service = MarketService()
