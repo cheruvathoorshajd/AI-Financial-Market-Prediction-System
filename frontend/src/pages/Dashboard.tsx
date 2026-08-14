@@ -15,12 +15,13 @@ import {
   usePortfolio,
   useStocks,
   useMovers,
+  useNews,
   useWatchlist,
   useWatchlistMutations,
 } from '../lib/queries';
 import { getErrorMessage } from '../lib/errors';
 import { useToast } from '../components/Toast';
-import { formatCurrency } from '../lib/format';
+import { formatCurrency, formatTimeAgo } from '../lib/format';
 
 const IndicesStrip: FC = () => {
   const { data, isLoading, isError } = useIndices();
@@ -198,6 +199,60 @@ const Movers: FC = () => {
   );
 };
 
+const HeadlinesTeaser: FC = () => {
+  const { data, isLoading, isError } = useNews({ limit: 4 });
+
+  if (isLoading) {
+    return (
+      <div className="card p-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="px-3 py-2.5">
+            <div className="skeleton h-4 w-4/5" />
+            <div className="skeleton mt-2 h-3 w-24" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (isError || !data || data.articles.length === 0) return null; // ambient; fail quietly
+
+  return (
+    <div className="card divide-y divide-line p-2">
+      {data.articles.slice(0, 4).map((a, i) => {
+        const inner = (
+          <>
+            <div className="line-clamp-2 text-sm font-medium leading-snug text-ink">{a.title}</div>
+            <div className="mt-1 flex items-center gap-2 text-2xs text-ink-muted">
+              <span>{a.source}</span>
+              {a.published && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>{formatTimeAgo(a.published)}</span>
+                </>
+              )}
+            </div>
+          </>
+        );
+        return a.url ? (
+          <a
+            key={i}
+            href={a.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block rounded-lg px-3 py-2.5 transition-colors hover:bg-raised"
+          >
+            {inner}
+          </a>
+        ) : (
+          <Link key={i} to="/news" className="block rounded-lg px-3 py-2.5 transition-colors hover:bg-raised">
+            {inner}
+          </Link>
+        );
+      })}
+    </div>
+  );
+};
+
 const Dashboard: FC = () => {
   const { user } = useAuth();
   const portfolio = usePortfolio();
@@ -260,6 +315,19 @@ const Dashboard: FC = () => {
             <Movers />
           </section>
         </div>
+
+        <section>
+          <SectionHeading
+            eyebrow="News"
+            title="Latest headlines"
+            action={
+              <Link to="/news" className="inline-flex items-center gap-1.5 text-sm font-medium text-accent hover:text-accent-hover">
+                All news <ArrowRight size={15} />
+              </Link>
+            }
+          />
+          <HeadlinesTeaser />
+        </section>
       </div>
     </div>
   );

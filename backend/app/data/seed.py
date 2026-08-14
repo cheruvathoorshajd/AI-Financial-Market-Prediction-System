@@ -153,3 +153,121 @@ DEMO_HOLDINGS: List[dict] = [
     {"symbol": "XOM", "shares": 35, "avgCost": 102.80},
 ]
 DEMO_CASH = 12_450.00
+
+
+# --------------------------------------------------------------------------- #
+# Finance news snapshot — a labelled fallback for the /news feed when no news
+# API key is configured (or the quota is spent). Dated to the snapshot day so
+# the UI can honestly badge it "snapshot" alongside a real date. Not live, and
+# clearly generic market commentary rather than impersonated breaking news.
+# --------------------------------------------------------------------------- #
+NEWS_AS_OF = SNAPSHOT_AS_OF
+
+NEWS_SNAPSHOT: List[dict] = [
+    {
+        "title": "Chipmakers lead broad tech advance as AI demand stays firm",
+        "source": "Market Ledger",
+        "summary": "Semiconductor names outperformed again, with data-centre demand cited as the durable driver. Analysts flagged valuations as the main risk to the run.",
+        "tickers": ["NVDA", "AMD", "MSFT"],
+        "sentiment": "Bullish",
+        "topics": ["technology", "earnings"],
+        "hour": 14,
+    },
+    {
+        "title": "Fed minutes point to a patient path on rates",
+        "source": "Fiscal Wire",
+        "summary": "Policymakers signalled they are in no hurry to move, keeping the door open in either direction as they weigh cooling inflation against a resilient labour market.",
+        "tickers": ["SPY", "QQQ"],
+        "sentiment": "Neutral",
+        "topics": ["economy", "monetary_policy"],
+        "hour": 13,
+    },
+    {
+        "title": "Energy slips as crude eases on demand worries",
+        "source": "Commodity Desk",
+        "summary": "Oil majors drifted lower with crude, as softer manufacturing prints revived questions about the demand outlook into the back half of the year.",
+        "tickers": ["XOM"],
+        "sentiment": "Bearish",
+        "topics": ["energy", "commodities"],
+        "hour": 12,
+    },
+    {
+        "title": "Banks steady ahead of a busy earnings stretch",
+        "source": "Fiscal Wire",
+        "summary": "Financials held their ground as investors positioned for results. Net-interest-margin commentary is the number the market says it will watch most.",
+        "tickers": ["JPM", "V"],
+        "sentiment": "Neutral",
+        "topics": ["financials", "earnings"],
+        "hour": 11,
+    },
+    {
+        "title": "Consumer names mixed as shoppers stay selective",
+        "source": "Retail Report",
+        "summary": "Staples outperformed discretionary in a cautious tape, with commentary pointing to value-seeking behaviour rather than an outright pullback in spending.",
+        "tickers": ["WMT", "KO", "AMZN"],
+        "sentiment": "Neutral",
+        "topics": ["consumer", "retail"],
+        "hour": 10,
+    },
+    {
+        "title": "Software rallies on renewed enterprise IT budgets",
+        "source": "Market Ledger",
+        "summary": "Cloud and enterprise-software shares climbed on signs that corporate IT spend is thawing, though the move left several names richly priced.",
+        "tickers": ["CRM", "ORCL", "MSFT"],
+        "sentiment": "Bullish",
+        "topics": ["technology", "earnings"],
+        "hour": 9,
+    },
+    {
+        "title": "EV demand debate keeps autos volatile",
+        "source": "Street Signal",
+        "summary": "Electric-vehicle makers swung intraday as the market parsed pricing and delivery trends. Direction, traders noted, hinges on the next round of guidance.",
+        "tickers": ["TSLA"],
+        "sentiment": "Neutral",
+        "topics": ["consumer", "autos"],
+        "hour": 8,
+    },
+    {
+        "title": "Crypto-linked equities pull back after a strong run",
+        "source": "Digital Assets Daily",
+        "summary": "Exchange and crypto-adjacent stocks gave back some gains as token prices cooled, a reminder of how tightly the two remain correlated.",
+        "tickers": ["COIN"],
+        "sentiment": "Bearish",
+        "topics": ["financials", "crypto"],
+        "hour": 7,
+    },
+]
+
+
+def snapshot_news(
+    tickers: List[str] | None = None,
+    topics: List[str] | None = None,
+    limit: int = 20,
+) -> List[dict]:
+    """Return labelled snapshot news, optionally filtered by ticker / topic."""
+    want_t = {t.upper() for t in tickers} if tickers else None
+    want_topics = {t.lower() for t in topics} if topics else None
+    base = datetime.strptime(NEWS_AS_OF, "%Y-%m-%d")
+    out: List[dict] = []
+    for a in NEWS_SNAPSHOT:
+        if want_t and not (want_t & {s.upper() for s in a["tickers"]}):
+            continue
+        if want_topics and not (want_topics & {s.lower() for s in a["topics"]}):
+            continue
+        published = base + timedelta(hours=a["hour"])
+        out.append(
+            {
+                "title": a["title"],
+                "url": "",
+                "source": a["source"],
+                "summary": a["summary"],
+                "published": published.isoformat(),
+                "tickers": a["tickers"],
+                "sentiment": a["sentiment"],
+                "image": None,
+                "topics": a["topics"],
+            }
+        )
+        if len(out) >= limit:
+            break
+    return out

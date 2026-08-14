@@ -14,6 +14,7 @@ import Dashboard from './pages/Dashboard';
 import Markets from './pages/Markets';
 import AssetDetail from './pages/AssetDetail';
 import Insights from './pages/Insights';
+import News from './pages/News';
 import Portfolio from './pages/Portfolio';
 import Settings from './pages/Settings';
 import DesignSystem from './pages/DesignSystem';
@@ -46,6 +47,7 @@ function App() {
             <Route path="/markets" element={<Markets />} />
             <Route path="/markets/:symbol" element={<AssetDetail />} />
             <Route path="/insights" element={<Insights />} />
+            <Route path="/news" element={<News />} />
             <Route
               path="/portfolio"
               element={

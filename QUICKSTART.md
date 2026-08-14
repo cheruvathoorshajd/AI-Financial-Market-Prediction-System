@@ -1,7 +1,8 @@
 # Quick start — Fluxus Fisci
 
-Get it running in about five minutes. Neither API key is required — the app
-falls back to labelled snapshot data and a heuristic reading without them.
+Get it running in about five minutes. The Alpha Vantage key is optional — the
+app falls back to labelled snapshot data, and the reading is always the
+deterministic signals narrative.
 
 ## 1. Backend
 
@@ -22,8 +23,7 @@ DATABASE_URL=sqlite:///./test.db
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:3001"]
 ALPHA_VANTAGE_API_KEY=          # optional — real quotes; free at alphavantage.co
-ANTHROPIC_API_KEY=              # optional — enables the natural-language AI reading
-ANTHROPIC_MODEL=claude-opus-5   # optional
+FINNHUB_API_KEY=               # optional — live news feed; free at finnhub.io
 ```
 
 API: <http://localhost:8000> · docs at `/docs`.

@@ -34,8 +34,9 @@ The surfaces, each designed with loading / empty / error / success states and re
 - **Sign in / Register** — calm, single-window auth, fit-to-viewport (never clipped).
 - **Dashboard** — your daily read: market backdrop, portfolio snapshot, watchlist, and today's movers.
 - **Markets** — search by **ticker _or_ company name**, trending, and gainers/losers, each with a bespoke sparkline.
-- **Asset detail** — price history (custom chart), key stats, and the AI reading.
-- **Insights** — a grounded assistant you can ask questions of.
+- **Asset detail** — price history (custom chart), key stats, and the signals reading.
+- **Insights** — an **experimental LSTM outlook** that ranks assets by expected next-day return (reporting its own backtested lack of edge), plus a chat box you can ask — *"which stock does the model rank highest?"*, *"best performer next quarter?"* — that routes to the model's ranking and, for horizons it can't see, says so plainly and adds a labelled backward-looking trend.
+- **News** (`/news`) — a finance-only feed (markets, earnings, economy) with topic filters, sentiment and ticker tags, and an honest live/snapshot badge.
 - **Portfolio** — **editable** holdings, allocation, and P&L over cost basis, calmly visualized.
 - **Settings** — profile, password, watchlist, and session: a full account section.
 - **Design system** (`/design-system`) — the token, type, and data-viz language in one place.
@@ -71,45 +72,43 @@ Full reference, rendered live: **`/design-system`** in the running app.
 
 ## 5. How the AI actually works (the honest part)
 
-This is the crux, and it is built to be **real, functional, transparent, and honest.** There are three distinct kinds of "intelligence" here, and the app labels each as exactly what it is:
+This is the crux, and it is built to be **real, functional, transparent, and honest.** There are two distinct kinds of "intelligence" here, and the app labels each as exactly what it is:
 
-### a. Transparent heuristics — `backend/app/ml/signals.py`
-Plain, auditable arithmetic over the price history: momentum, price-vs-50-day-average, annualised volatility, RSI(14), and range position. These are **heuristics, and the UI says so.** They are never dressed up as a model or a prediction. They are the observable *facts* the assistant reasons over — and in the transparency panel, they're surfaced as "what it looked at," with their real values.
+### a. Transparent heuristics & their reading — `backend/app/ml/signals.py` · `insights_service.py`
+Plain, auditable arithmetic over the price history: momentum, price-vs-50-day-average, annualised volatility, RSI(14), and range position. These are **heuristics, and the UI says so** — never dressed up as a model or a prediction. They are the observable *facts* the assistant reasons over, surfaced in the transparency panel as "what it looked at," with their real values. The natural-language narrative (summary, reasoning, limits) is then composed **deterministically** from those exact numbers — no language model, nothing invented — and labelled **"Signals reading."** It explains; it never says buy, sell, or hold.
 
-### b. A grounded LLM call — `backend/app/ml/insights_service.py`
-When an `ANTHROPIC_API_KEY` is configured, the natural-language narrative (summary, reasoning, limits) is written by a **real Anthropic API call** (`claude-opus-5` by default), grounded *strictly* in the heuristic numbers computed in (a). The system prompt forbids it from inventing prices/news, forbids buy/sell/hold recommendations, and instructs it to be explicit about uncertainty. The narrative is labelled **"AI reading."**
-
-### c. An honest fallback — same file
-With **no key** (or on any API/SDK/network error), the assistant degrades gracefully to a deterministic explanation composed from the same signals, labelled **"Signals reading."** Nothing is faked; the app tells you which path produced the words you're reading.
+### b. An experimental forecaster — `backend/app/ml/forecaster.py`
+A small **PyTorch LSTM**, trained per-symbol on daily log-returns, produces the `/insights` **outlook** (assets ranked by expected next-day return) and the per-asset **forecast**. It is labelled **"Experimental · LSTM,"** and its honesty is louder than its numbers: every result carries a **walk-forward backtest** reporting skill-vs-naive error and directional accuracy, and the verdict is blunt when it earns it — *"no reliable edge over a naive guess."* It never emits a buy / sell / hold, and it degrades to a labelled **"model unavailable"** when PyTorch isn't installed (see §6). This is the thesis applied to the hardest case: a genuine machine prediction, presented so you trust it *only* as much as it deserves.
 
 **Confidence is honest, too.** There is no fabricated "87% accurate." Confidence is a *qualitative* level (low / tentative / moderate) derived from how much the signals agree with each other, shown with its rationale.
 
-**What was removed:** the original app's `Strong Buy / Hold / Sell` recommendations, its "confidence scores," and a dead `TensorFlow` LSTM (`predictor.py`) that was never wired to any route but whose presence let the UI label a threshold heuristic as an "LSTM Neural Network." All gone.
+**What was removed:** the original app's `Strong Buy / Hold / Sell` recommendations, its "confidence scores," and a dead `TensorFlow` LSTM (`predictor.py`) that was never wired to any route but whose presence let the UI label a threshold heuristic as an "LSTM Neural Network." All gone. (The LSTM shipped now — §5b — is a *real* trained model wired to real routes; and, unlike that old label, it is honest about having no reliable edge.)
 
 ### Capability notes, in one line each
-- **LLM (real):** the insights narrative and free-form Q&A, when a key is set. Anthropic Messages API.
-- **Heuristic (labelled):** momentum / MA / volatility / RSI / range signals, and the qualitative confidence.
-- **External API:** market quotes from Alpha Vantage (free tier, ~25 req/day) with a graceful, clearly-labelled snapshot fallback — every response carries a `source: "live" | "snapshot"` field that the UI surfaces honestly.
-- **Not present:** any trained/proprietary model, any prediction of future price, any recommendation.
+- **Heuristic (labelled):** momentum / MA / volatility / RSI / range signals, the qualitative confidence, and the deterministic "Signals reading" narrative composed from them.
+- **Forecast (experimental):** a per-symbol PyTorch LSTM behind `/insights` outlook & forecast, with a walk-forward backtest and a blunt "no reliable edge" verdict; degrades to "model unavailable" without PyTorch.
+- **External API:** market quotes from Alpha Vantage (free tier, ~25 req/day) with a graceful, clearly-labelled snapshot fallback — every response carries a `source: "live" | "snapshot" | "mixed"` field that the UI surfaces honestly.
+- **News (external, optional):** finance headlines via a degrading chain — Finnhub → Alpha Vantage `NEWS_SENTIMENT` → labelled snapshot — each response tagged with its `source` and `provider`, so the feed works with no key and upgrades automatically with either.
+- **Not present:** any language model, any proprietary model, any confident price target, any recommendation. The one predictive model (the experimental LSTM) reports its own lack of edge rather than pretending to have one.
 
 ## 6. Architecture & stack
 
 ```
 backend/   FastAPI + SQLAlchemy (SQLite)
-  app/ml/         signals.py (heuristics) · insights_service.py (grounded LLM + fallback)
-  app/services/   market_service.py (Alpha Vantage + snapshot) · portfolio_service.py
-  app/api/        auth · users · market · portfolio · insights · watchlist
-  tests/          signals · grounding fallback · portfolio math
+  app/ml/         signals.py (heuristics) · insights_service.py (deterministic signals reading) · forecaster.py (experimental LSTM)
+  app/services/   market_service.py (Alpha Vantage + snapshot) · news_service.py (Finnhub/AV/snapshot) · portfolio_service.py
+  app/api/        auth · users · market · portfolio · insights · news · watchlist
+  tests/          signals · grounding + outlook routing · portfolio math · news · forecaster (torch-gated) · app-boot smoke
 frontend/  React 18 + TypeScript (strict) + Tailwind + Recharts + react-query
   src/lib/        tokens · queries (data hooks) · format · errors · demo · useSignOut
   src/context/    AuthContext · TransitionContext (the wipe + sign-out splash)
-  src/components/ ui/ (primitives) · charts/ · market/CompareSection · insights/InsightPanel (the signature)
+  src/components/ ui/ (primitives) · charts/ · market/CompareSection · insights/InsightPanel (the signature) + OutlookBoard
                   · layout/ · CommandPalette (⌘K) · DemoTour · RouteProgress
   src/pages/      Onboarding · Login · Register · Dashboard · Markets · AssetDetail · Insights
-                  · Portfolio · Settings · DesignSystem · NotFound
+                  · News · Portfolio · Settings · DesignSystem · NotFound
 ```
 
-Secrets stay **server-side** — the Anthropic and Alpha Vantage keys never enter the client bundle (the only client env var is the API base URL).
+Secrets stay **server-side** — the Alpha Vantage key never enters the client bundle (the only client env var is the API base URL).
 
 **Auth token storage.** The JWT is kept in `localStorage` so the SPA can attach it as a bearer header. That trades a small XSS exposure (an injected script could read it) for simplicity; the app renders no untrusted HTML (no `dangerouslySetInnerHTML` anywhere), so there is no injection sink today. An `httpOnly` cookie would be stronger and is the natural next step beyond a portfolio demo.
 
@@ -135,10 +134,9 @@ DATABASE_URL=sqlite:///./test.db
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 BACKEND_CORS_ORIGINS=["http://localhost:3000","http://localhost:3001"]
 ALPHA_VANTAGE_API_KEY=your_key_or_leave_unset   # https://www.alphavantage.co/support/#api-key
-ANTHROPIC_API_KEY=your_key_or_leave_unset       # optional — enables the LLM narrative
-ANTHROPIC_MODEL=claude-opus-5                    # optional — e.g. claude-sonnet-5 for lower cost
+FINNHUB_API_KEY=your_key_or_leave_unset          # optional — preferred source for the news feed (free at finnhub.io)
 ```
-Neither API key is required to run — the app falls back to labelled snapshot data and a heuristic reading.
+No key is required to run — the app falls back to labelled snapshot data (quotes _and_ news), and the reading is always the deterministic signals narrative. A Finnhub key gives the news feed a reliable live source without spending the tiny Alpha Vantage quota.
 
 ### Frontend
 ```bash
@@ -162,7 +160,7 @@ cd frontend && npx tsc --noEmit   # TypeScript strict typecheck
 
 ## 9. Honest capability notes (summary)
 
-Nothing here predicts the market. The app computes transparent technical signals, optionally has a language model *explain* them in plain English (grounded only in those numbers), and is explicit — in the UI and in this document — about what is a heuristic, what is an API call, and what is an LLM call. **It is for understanding, not recommendations. Nothing in it is financial advice.**
+Nothing here *reliably* predicts the market — and the one model that tries says so itself. The app computes transparent technical signals, *explains* them in plain English composed deterministically from those same numbers, and includes an experimental LSTM forecaster that publishes its own backtested lack of edge. It is explicit — in the UI and in this document — about what is a heuristic, what is an API call, and what is an experimental forecast. **It is for understanding, not recommendations. Nothing in it is financial advice.**
 
 ---
 

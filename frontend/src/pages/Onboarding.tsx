@@ -37,7 +37,7 @@ const STATS: Array<{ k: string; v: string; accent?: boolean }> = [
   { k: '0', v: 'buy / sell / hold recommendations — it explains, it never tells you to act', accent: true },
   { k: '0', v: 'fabricated accuracy scores — no invented “87% confident”' },
   { k: '100%', v: 'of quotes labelled live or snapshot — never hidden' },
-  { k: '3', v: 'kinds of intelligence, each labelled as exactly what it is' },
+  { k: '3', v: 'labelled layers behind every reading, each shown for exactly what it is' },
 ];
 
 const FEATURES: Array<{ n: string; icon: LucideIcon; title: string; desc: string }> = [
@@ -46,7 +46,7 @@ const FEATURES: Array<{ n: string; icon: LucideIcon; title: string; desc: string
   { n: '03', icon: Command, title: 'Command palette', desc: 'Press ⌘K anywhere to search any asset or jump to any page — an accessible, keyboard-first way around the whole product.' },
   { n: '04', icon: GitCompareArrows, title: 'Compare assets', desc: 'Put two or three side by side — their price shape, the same labelled signals, and an honest reading of each.' },
   { n: '05', icon: Wallet, title: 'Editable portfolio', desc: 'Per-user holdings with correct P/L over cost basis, sector allocation, and calm sparklines. The demo comes seeded.' },
-  { n: '06', icon: Sparkles, title: 'Grounded LLM assistant', desc: 'When a key is set, the reading is written by an LLM — strictly from the computed numbers. It never invents data, and never advises.' },
+  { n: '06', icon: Sparkles, title: 'Experimental LSTM outlook', desc: 'A small PyTorch model ranks a next-day outlook and reports its own backtested lack of edge — a real prediction, honest about how little it knows. It never advises.' },
 ];
 
 const PIPELINE: Array<{ n: string; title: string; desc: string }> = [
@@ -54,14 +54,14 @@ const PIPELINE: Array<{ n: string; title: string; desc: string }> = [
   { n: '02', title: 'History', desc: 'Deterministic 6-month series' },
   { n: '03', title: 'Signals', desc: 'NumPy — momentum · MA · RSI · vol · range' },
   { n: '04', title: 'Confidence', desc: 'Qualitative signal agreement' },
-  { n: '05', title: 'Reading', desc: 'Grounded LLM, or heuristic fallback' },
+  { n: '05', title: 'Reading', desc: 'Deterministic “Signals reading”' },
   { n: '06', title: 'Transparency', desc: 'What it looked at · limits · not advice' },
 ];
 
 const LAYERS: Array<{ tag: string; icon: LucideIcon; title: string; desc: string }> = [
   { tag: 'Heuristic', icon: Activity, title: 'Transparent signals', desc: 'Momentum, moving averages, RSI, volatility and range — plain NumPy arithmetic over real price history. Labelled as heuristics, never dressed up as a model.' },
-  { tag: 'LLM', icon: Sparkles, title: 'Grounded narrative', desc: 'With a key set, an LLM (Claude, or a free Groq / Gemini model) writes the plain-English reading — strictly from those numbers. It explains; it never says buy, sell, or hold.' },
-  { tag: 'Fallback', icon: ShieldCheck, title: 'Honest when offline', desc: 'No key, or an API hiccup? It degrades to a deterministic reading from the same signals — labelled “Signals reading” — and tells you so. Nothing is ever faked.' },
+  { tag: 'Reading', icon: Activity, title: 'Grounded narrative', desc: 'The plain-English reading is composed deterministically from those exact numbers — labelled “Signals reading.” No language model, nothing invented. It explains; it never says buy, sell, or hold.' },
+  { tag: 'Experimental', icon: ShieldCheck, title: 'A model that admits its limits', desc: 'A small PyTorch LSTM ranks a next-day outlook with a walk-forward backtest — and says plainly when it has no edge over a naive guess. Labelled experimental; it never advises.' },
 ];
 
 const FIELD: string[] = [
@@ -82,7 +82,7 @@ const FF: string[] = [
 
 const TECH: string[] = [
   'React 18', 'TypeScript (strict)', 'Tailwind', 'Recharts', 'React Query',
-  'FastAPI', 'SQLAlchemy', 'Pydantic', 'NumPy', 'Anthropic / Groq / Gemini', 'Alpha Vantage',
+  'FastAPI', 'SQLAlchemy', 'Pydantic', 'NumPy', 'PyTorch (LSTM)', 'Alpha Vantage',
 ];
 
 const SectionLabel: FC<{ num: string; children: ReactNode }> = ({ num, children }) => (
@@ -99,7 +99,7 @@ const TransparencyPreview: FC = () => (
     <div className="p-6 pl-7">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.08em] text-accent">
-          <Sparkles size={12} /> AI reading
+          <Activity size={12} /> Signals reading
         </span>
         <span className="inline-flex items-center rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.08em] text-accent">
           moderate confidence
@@ -243,7 +243,7 @@ const Onboarding: FC = () => {
             {err && <p className="reveal mt-3 text-sm text-neg" role="alert">{err}</p>}
 
             <div className="reveal delay-4 mt-8 flex flex-wrap items-center gap-2">
-              {['Transparent heuristics', 'Grounded LLM', 'Honest fallback'].map((chip) => (
+              {['Transparent heuristics', 'Deterministic reading', 'Experimental LSTM'].map((chip) => (
                 <span
                   key={chip}
                   className="rounded-full border border-line bg-surface px-3 py-1 text-2xs font-medium uppercase tracking-[0.08em] text-ink-secondary"

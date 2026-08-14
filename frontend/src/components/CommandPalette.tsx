@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LineChart,
   type LucideIcon,
+  Newspaper,
   Search,
   Settings as SettingsIcon,
   Sparkles,
@@ -38,7 +39,8 @@ const NAV_COMMANDS: NavCommand[] = [
   { label: 'Dashboard', to: '/', hint: 'Your daily read', keywords: 'home overview', icon: LayoutDashboard, auth: true },
   { label: 'Markets', to: '/markets', hint: 'Trending & movers', keywords: 'stocks search trending compare versus', icon: LineChart },
   { label: 'Portfolio', to: '/portfolio', hint: 'Holdings & P/L', keywords: 'holdings allocation compare', icon: Wallet, auth: true },
-  { label: 'Insights', to: '/insights', hint: 'Ask the data', keywords: 'ai ask question', icon: Sparkles },
+  { label: 'Insights', to: '/insights', hint: 'Ask the data', keywords: 'ai ask question forecast outlook lstm', icon: Sparkles },
+  { label: 'News', to: '/news', hint: 'Finance headlines', keywords: 'news headlines finance articles feed', icon: Newspaper },
   { label: 'Settings', to: '/settings', hint: 'Account & watchlist', keywords: 'account watchlist profile', icon: SettingsIcon, auth: true },
 ];
 

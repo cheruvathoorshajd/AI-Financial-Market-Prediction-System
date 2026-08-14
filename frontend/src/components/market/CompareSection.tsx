@@ -100,7 +100,7 @@ const CompareColumn: FC<{ symbol: string; onRemove: () => void }> = ({ symbol, o
         <div className="mt-4 border-t border-line pt-4">
           <div className="mb-2 flex flex-wrap items-center gap-2">
             <span className="inline-flex items-center rounded-full border border-accent/25 bg-accent/10 px-2 py-0.5 text-2xs font-semibold uppercase tracking-[0.08em] text-accent">
-              {insight.data.method === 'llm' ? 'AI reading' : 'Signals reading'}
+              Signals reading
             </span>
             <span
               title={insight.data.confidence.rationale}

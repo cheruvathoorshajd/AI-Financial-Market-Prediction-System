@@ -1,5 +1,6 @@
 import { FC, FormEvent, useState } from 'react';
 import { useMutation } from 'react-query';
+import { Link } from 'react-router-dom';
 import { ArrowUp, Sparkles } from 'lucide-react';
 import PageHeader from '../components/ui/PageHeader';
 import EmptyState from '../components/ui/EmptyState';
@@ -11,10 +12,13 @@ import insightsService, {
   InsightSignal,
 } from '../services/insightsService';
 import { getErrorMessage } from '../lib/errors';
+import { formatPercent } from '../lib/format';
+import { cn } from '../lib/cn';
 
 const EXAMPLES = [
+  'Which stock does the model rank highest?',
+  'Best performing stock next quarter?',
   "What's moving today?",
-  'Explain what’s happening with NVDA',
   'How is AAPL trending?',
 ];
 
@@ -139,6 +143,39 @@ const Insights: FC = () => {
             disclaimer={answer.disclaimer}
             observations={signalGrounding.length ? signalGrounding : undefined}
           />
+          {answer.rankings?.map((rank, ri) => (
+            <div key={ri} className="card p-5">
+              <div className="eyebrow mb-1">{rank.title}</div>
+              <p className="mb-3 text-pretty text-xs leading-relaxed text-ink-muted">{rank.caption}</p>
+              <ul className="divide-y divide-line">
+                {rank.rows.map((row, i) => (
+                  <li key={row.symbol} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 py-2.5">
+                    <span className="font-mono text-xs text-ink-muted tabular">{i + 1}</span>
+                    <div className="min-w-0">
+                      <Link
+                        to={`/markets/${row.symbol}`}
+                        className="font-mono text-sm font-semibold text-ink transition-colors hover:text-accent"
+                      >
+                        {row.symbol}
+                      </Link>
+                      {row.name && <div className="truncate text-xs text-ink-muted">{row.name}</div>}
+                    </div>
+                    <div className="text-right">
+                      <div
+                        className={cn(
+                          'font-mono text-sm font-semibold tabular',
+                          row.valuePct >= 0 ? 'text-pos' : 'text-neg'
+                        )}
+                      >
+                        {formatPercent(row.valuePct)}
+                      </div>
+                      {row.note && <div className="text-2xs text-ink-muted">{row.note}</div>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
           {moverGrounding.length > 0 && (
             <div className="card p-5">
               <div className="eyebrow mb-3">Grounded in today's moves</div>

@@ -12,14 +12,17 @@ __pycache__/
 env/
 venv/
 ENV/
+# NOTE: lib/ and lib64/ are anchored to the repo root so they only ignore
+# Python build artifacts there — an un-anchored "lib/" also matches
+# frontend/src/lib/, which silently left the entire frontend lib dir untracked.
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+/lib/
+/lib64/
 parts/
 sdist/
 var/

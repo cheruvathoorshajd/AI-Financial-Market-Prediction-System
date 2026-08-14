@@ -14,6 +14,7 @@ const navItems: Array<{ to: string; label: string; end: boolean; auth?: boolean 
   { to: '/markets', label: 'Markets', end: false },
   { to: '/portfolio', label: 'Portfolio', end: false, auth: true },
   { to: '/insights', label: 'Insights', end: false },
+  { to: '/news', label: 'News', end: false },
 ];
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>

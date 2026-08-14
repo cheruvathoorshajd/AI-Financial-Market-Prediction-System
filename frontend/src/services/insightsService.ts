@@ -19,7 +19,7 @@ export interface Confidence {
 export interface AssetInsight {
   symbol: string;
   name: string;
-  method: 'llm' | 'heuristic';
+  method: 'heuristic';
   headline: string;
   summary: string;
   reasoning: string;
@@ -37,16 +37,31 @@ export interface GroundingMover {
   sector?: string | null;
 }
 
+export interface RankingRow {
+  symbol: string;
+  name?: string;
+  valuePct: number;
+  note?: string;
+}
+
+export interface Ranking {
+  title: string;
+  caption: string;
+  rows: RankingRow[];
+}
+
 export interface AskAnswer {
   question: string;
   symbol: string | null;
-  method: 'llm' | 'heuristic';
+  method: 'heuristic';
   headline: string;
   summary: string;
   reasoning: string;
   limits: string;
   enough: boolean;
   grounding: Array<InsightSignal | GroundingMover>;
+  /** Ranked lists for "best performer" / model-outlook questions (may be empty). */
+  rankings?: Ranking[];
   disclaimer: string;
 }
 

@@ -189,7 +189,7 @@ const AssetDetail: FC = () => {
         </div>
       </div>
 
-      {/* AI reading — the signature transparency panel */}
+      {/* Signals reading — the signature transparency panel */}
       <div className="mt-6">
         <AssetInsightSection symbol={sym} />
       </div>

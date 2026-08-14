@@ -9,9 +9,8 @@ bcrypt==5.0.0
 python-multipart==0.0.32
 numpy==2.5.2
 requests==2.34.2
-anthropic==0.121.0
 # torch (LSTM forecaster) is intentionally NOT installed on deploy — it OOMs the
-# Render free tier (~800MB). app/ml/forecaster.py imports it lazily, so the
-# /insights outlook & forecast routes degrade to "model unavailable" when it's
-# absent. Install it separately (`pip install torch`) to enable them locally or
-# on a larger plan.
+# free-tier build (~800MB; the backend deploys to Railway, see railway.toml).
+# app/ml/forecaster.py imports it lazily, so the /insights outlook & forecast
+# routes degrade to "model unavailable" when it's absent. Install it separately
+# (`pip install torch`) to enable them locally or on a larger plan.

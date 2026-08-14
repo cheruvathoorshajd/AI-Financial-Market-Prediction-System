@@ -1,12 +1,12 @@
 import { FC } from 'react';
-import { Sparkles, Activity, Info, ShieldQuestion } from 'lucide-react';
+import { Activity, Info, ShieldQuestion } from 'lucide-react';
 import { cn } from '../../lib/cn';
 import { InsightSignal, Confidence } from '../../services/insightsService';
 import { DataSource } from '../../services/marketService';
 import DataSourceBadge from '../ui/DataSourceBadge';
 
 interface InsightPanelProps {
-  method: 'llm' | 'heuristic';
+  method?: 'heuristic';
   headline: string;
   summary: string;
   reasoning: string;
@@ -33,7 +33,6 @@ const dirColor = (d: InsightSignal['direction']) =>
  * with "not advice" as a first-class part of the composition, not a footnote.
  */
 export const InsightPanel: FC<InsightPanelProps> = ({
-  method,
   headline,
   summary,
   reasoning,
@@ -49,7 +48,7 @@ export const InsightPanel: FC<InsightPanelProps> = ({
       'relative overflow-hidden rounded-2xl border border-line bg-surface shadow-card',
       className
     )}
-    aria-label="AI reading"
+    aria-label="Signals reading"
   >
     {/* signature: a verdigris rule down the edge */}
     <div className="absolute inset-y-0 left-0 w-1 bg-accent/70" aria-hidden />
@@ -58,8 +57,8 @@ export const InsightPanel: FC<InsightPanelProps> = ({
       {/* Provenance row — honest about what produced this */}
       <div className="mb-5 flex flex-wrap items-center gap-2.5">
         <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/25 bg-accent/10 px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.08em] text-accent">
-          {method === 'llm' ? <Sparkles size={12} /> : <Activity size={12} />}
-          {method === 'llm' ? 'AI reading' : 'Signals reading'}
+          <Activity size={12} />
+          Signals reading
         </span>
         {confidence && (
           <span
@@ -80,12 +79,10 @@ export const InsightPanel: FC<InsightPanelProps> = ({
       </h3>
       <p className="mt-2.5 text-pretty leading-relaxed text-ink-secondary">{summary}</p>
 
-      {method === 'heuristic' ? (
-        <p className="mt-3 text-xs italic text-ink-muted">
-          Written from technical signals, not a language model. Set an Anthropic
-          key on the server for a fuller natural-language reading.
-        </p>
-      ) : null}
+      <p className="mt-3 text-xs italic text-ink-muted">
+        Composed deterministically from the technical signals below — no language
+        model, nothing invented.
+      </p>
 
       {/* What it looked at — the real, labelled signals */}
       {observations && observations.length > 0 && (

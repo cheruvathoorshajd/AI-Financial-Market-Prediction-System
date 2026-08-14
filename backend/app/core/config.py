@@ -22,13 +22,11 @@ class Settings(BaseSettings):
     # key (free at https://www.alphavantage.co/support/#api-key) for real data.
     ALPHA_VANTAGE_API_KEY: str = "demo"
 
-    # Anthropic API key for the grounded insights assistant. When unset, the
-    # assistant degrades gracefully to a deterministic, clearly-labelled
-    # explanation built from the same heuristic signals (nothing is faked).
-    ANTHROPIC_API_KEY: str = ""
-    # Model for the insights assistant. Defaults to Opus 5; set a cheaper /
-    # faster model (e.g. claude-sonnet-5 or claude-haiku-4-5) via env if desired.
-    ANTHROPIC_MODEL: str = "claude-opus-5"
+    # Finance news. Optional and free. If FINNHUB_API_KEY is set it's preferred
+    # for the news feed (a generous free tier that doesn't spend the tiny Alpha
+    # Vantage quota); otherwise the feed falls back to Alpha Vantage's
+    # NEWS_SENTIMENT (shares the ~25/day budget), then to a labelled snapshot.
+    FINNHUB_API_KEY: str = ""
 
     # Exact-match allowed origins. Wildcard hosts (e.g. Vercel preview URLs)
     # are handled separately via BACKEND_CORS_ORIGIN_REGEX below.
