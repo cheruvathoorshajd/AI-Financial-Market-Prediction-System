@@ -146,7 +146,6 @@ class MarketService:
             "DIA": ("Dow Jones", 451.90, 0.19),
         }
         results = []
-        source = "snapshot"
         for symbol, (name, fallback_val, fallback_pct) in indices.items():
             # Ambient backdrop — snapshot, so the scarce live budget stays with
             # the asset the user opens and their watchlist.
@@ -157,7 +156,6 @@ class MarketService:
                     "change": live["change"], "changePercent": live["changePercent"],
                     "source": "live",
                 })
-                source = "mixed" if source == "snapshot" and results[:-1] else source
             else:
                 change = round(fallback_val * fallback_pct / 100, 2)
                 results.append({
