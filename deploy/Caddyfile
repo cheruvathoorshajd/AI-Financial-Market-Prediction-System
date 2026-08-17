@@ -2,9 +2,9 @@
 # Frontend (React build + case study) and the API are served from ONE origin,
 # so the browser makes same-origin calls and no CORS is involved.
 #
-# >>> Replace the hostname below with YOUR DuckDNS domain. <<<
+# >>> Change the hostname below if you use a different domain/subdomain. <<<
 
-fluxusfisci.duckdns.org {
+fluxus-fisci.cheruvathoor.com {
     encode zstd gzip
 
     # FastAPI backend — everything under /api/* and the health check.

@@ -1,12 +1,12 @@
-# Deploying Fluxus Fisci on AWS Free Tier
+# Deploying Fluxus Fisci on AWS (EC2 + your domain)
 
 A single **EC2 t3.micro** runs the whole app: FastAPI (uvicorn behind systemd)
 and the React production build + the case study, all served by **Caddy** with
-automatic HTTPS on a free **DuckDNS** domain. SQLite lives on the instance disk.
+automatic HTTPS on **`fluxus-fisci.cheruvathoor.com`**. SQLite lives on the instance disk.
 
 ```
                       Internet
-                         │  https://<you>.duckdns.org
+                         │  https://fluxus-fisci.cheruvathoor.com
                     ┌────▼─────┐
                     │  Caddy   │  :443 (auto Let's Encrypt), :80 (redirect + ACME)
                     ├──────────┴──────────────────────────┐
@@ -16,29 +16,28 @@ automatic HTTPS on a free **DuckDNS** domain. SQLite lives on the instance disk.
                         SQLite: backend/test.db (on the EBS volume)
 ```
 
+> Using a subdomain (`fluxus.`) keeps your apex `cheruvathoor.com` free for a
+> personal site. To use the apex instead, swap `fluxus-fisci.cheruvathoor.com` →
+> `cheruvathoor.com` everywhere below and create the DNS record on `@`.
+
 **Everything you need is in [`deploy/`](deploy/):** `setup-ec2.sh`,
 `fluxus-backend.service`, `Caddyfile`, `deploy.sh`.
 
-Costs (new AWS Free Tier — $200 credits over 6 months): a t3.micro 24/7
-(~$7.50/mo) + 30 GB EBS (~$2.40/mo) ≈ **~$10/mo → ~$60 over 6 months**, well
-under the $200 credit. DuckDNS + Caddy TLS are free. NOTE: this tier is
-credit-capped and the account auto-closes after 6 months or when credits run out
-unless you upgrade — set a Billing budget alarm (§9). Watch-outs in §9.
+**Costs (new AWS Free Tier — $200 credits / 6 months):** t3.micro 24/7 (~$7.50/mo)
++ 30 GB EBS (~$2.40/mo) ≈ **~$10/mo → ~$60 over 6 months**, well under the $200.
+Your domain + Caddy TLS cost nothing extra. The account auto-closes after 6
+months or when credits run out unless you upgrade — set a budget alarm (§9).
 
 ---
 
-## 0. Before you start (on your laptop)
+## 0. Before you start
 
-Push the latest code to GitHub — the instance clones from there:
-
-```bash
-git add -A
-git commit -m "Deploy: AWS EC2 + Caddy config and docs"
-git push        # to your Fluxus_Fisci repo
-```
-
-You'll need: an **AWS account**, and a free **DuckDNS** account
-(<https://www.duckdns.org>, log in with GitHub/Google).
+- The code is **already on GitHub** (`main`) — nothing to push. The instance
+  clones from `https://github.com/cheruvathoorshajd/Fluxus_Fisci.git`.
+- You need: an **AWS account**, ownership of **`cheruvathoor.com`** (✓), and
+  **access to its DNS** (your registrar or Cloudflare/Route 53).
+- Turn off the leftover **Render** service first (Render dashboard → the service
+  → Settings → Delete/Suspend, or Auto-Deploy → No) so it stops failing on pushes.
 
 ---
 
@@ -47,43 +46,69 @@ You'll need: an **AWS account**, and a free **DuckDNS** account
 1. **EC2 → Launch instance.**
 2. **Name:** `fluxus-fisci`.
 3. **AMI:** *Amazon Linux 2023* (x86_64).
-4. **Instance type:** `t3.micro` (or `t2.micro` — whichever your region lists as
-   free-tier eligible).
-5. **Key pair:** create/download one (e.g. `fluxus-key.pem`) — you'll SSH with it.
-6. **Network settings → Edit → Security group**, allow inbound:
-   - **SSH** `22` — *Source: My IP* (just you).
-   - **HTTP** `80` — *Anywhere* (needed for the Let's Encrypt challenge + redirect).
-   - **HTTPS** `443` — *Anywhere*.
-7. **Storage:** 30 GB gp3 (free-tier max) is plenty.
-8. **Launch.**
+4. **Instance type:** `t3.micro`.
+5. **Key pair:** *Create key pair* → type **RSA**, format **.pem** → download
+   `fluxus-key.pem` (keep it; needed only if you SSH from your PC).
+6. **Network settings → Edit → Security group** — allow inbound:
+   - **SSH** `22` — Source **My IP**.
+   - **HTTP** `80` — Source **Anywhere** (required for the Let's Encrypt challenge).
+   - **HTTPS** `443` — Source **Anywhere**.
+7. **Storage:** 30 GB gp3.
+8. **Launch instance.**
 
-**Give it a stable IP** so DNS doesn't break on stop/start:
-**EC2 → Elastic IPs → Allocate**, then **Associate** it with the instance.
-(An Elastic IP is free *while associated with a running instance*.)
-
-Note the Elastic IP — call it `<EIP>`.
+**Give it a stable IP:** **EC2 → Elastic IPs → Allocate**, then **Actions →
+Associate** it with the `fluxus-fisci` instance. Note this IP — referred to below
+as **`<EIP>`**. (An Elastic IP is free while associated with a running instance.)
 
 ---
 
-## 2. Point your DuckDNS domain at the box
+## 2. Point cheruvathoor.com at the box (DNS)
 
-1. At <https://www.duckdns.org>, create a subdomain, e.g. `fluxusfisci`
-   → your hostname is `fluxusfisci.duckdns.org`.
-2. Set its **current IP** field to `<EIP>` and **update**.
-3. Verify from your laptop: `nslookup fluxusfisci.duckdns.org` → returns `<EIP>`.
+Add ONE **A record** at wherever `cheruvathoor.com`'s DNS is managed:
 
-Because you're on an Elastic IP, the address is static — no updater needed.
+| Field | Value |
+|---|---|
+| Type | **A** |
+| Name / Host | **`fluxus-fisci`**  (just the subdomain label, not the full name) |
+| Value / Points to | **`<EIP>`** (your Elastic IP) |
+| TTL | default / 300 |
 
----
+Provider specifics:
+- **Registrar DNS** (GoDaddy, Namecheap, Google Domains, etc.): open DNS
+  management → *Add record* → Type **A**, Host **`fluxus-fisci`**, Value **`<EIP>`**.
+- **Cloudflare:** DNS → *Add record* → **A**, Name **`fluxus-fisci`**, IPv4 **`<EIP>`**,
+  and set **Proxy status = DNS only (grey cloud)** — *not* proxied, or Caddy's
+  cert challenge fails. Save.
+- **Route 53:** Hosted zone for `cheruvathoor.com` → *Create record* → record
+  name **`fluxus-fisci`**, type **A**, value **`<EIP>`**.
 
-## 3. SSH in and run the one-time setup
+**Verify it resolves before continuing** (from your PC, PowerShell):
 
-```bash
-chmod 400 fluxus-key.pem
-ssh -i fluxus-key.pem ec2-user@<EIP>
+```powershell
+nslookup fluxus-fisci.cheruvathoor.com     # must return <EIP>
 ```
 
-Clone the repo and run the bootstrap (swap + Python 3.11 + Node + Caddy):
+DNS can take a few minutes (occasionally longer). Wait until it returns `<EIP>`.
+
+---
+
+## 3. Connect to the instance and run the one-time setup
+
+**Easiest (no key hassle) — EC2 Instance Connect:** EC2 → Instances → select
+`fluxus-fisci` → **Connect** → **EC2 Instance Connect** tab → **Connect**. A
+terminal opens in your browser as `ec2-user`. Skip to the clone step below.
+
+**Or SSH from Windows (PowerShell):**
+```powershell
+# fix key permissions once (Windows refuses world-readable keys)
+icacls "$HOME\Downloads\fluxus-key.pem" /inheritance:r
+icacls "$HOME\Downloads\fluxus-key.pem" /grant:r "$($env:USERNAME):(R)"
+ssh -i "$HOME\Downloads\fluxus-key.pem" ec2-user@<EIP>
+```
+(If `ssh` isn't found, install *OpenSSH Client* via Windows *Optional Features*,
+or use PuTTY with a `.ppk` converted from the `.pem`.)
+
+**Once connected**, clone and bootstrap (installs swap + Python 3.11 + Node + Caddy):
 
 ```bash
 git clone https://github.com/cheruvathoorshajd/Fluxus_Fisci.git
@@ -93,9 +118,9 @@ bash deploy/setup-ec2.sh
 
 ---
 
-## 4. Configure the backend
+## 4. Configure and start the backend
 
-Create the production env file (git-ignored — it never leaves the box):
+Create the production env file (git-ignored — stays on the box):
 
 ```bash
 cd ~/Fluxus_Fisci/backend
@@ -103,31 +128,27 @@ cat > .env <<EOF
 SECRET_KEY=$(python3.11 -c "import secrets; print(secrets.token_urlsafe(48))")
 DATABASE_URL=sqlite:///./test.db
 ACCESS_TOKEN_EXPIRE_MINUTES=30
-BACKEND_CORS_ORIGINS=["https://fluxusfisci.duckdns.org"]
+BACKEND_CORS_ORIGINS=["https://fluxus-fisci.cheruvathoor.com"]
 ALPHA_VANTAGE_API_KEY=UP4DUV2FAQA27ENY,RVO2GXKWBOWIOQIE
 FINNHUB_API_KEY=
 EOF
 ```
 
-> The app is on **snapshot data** for market views (always populated — ideal for
-> a demo). The Alpha Vantage keys only power live **news** + individual live
-> quotes. `FINNHUB_API_KEY` is optional (a free key gives a more reliable news
-> feed). CORS is same-origin here, so the line above is belt-and-suspenders.
+> Market views use **snapshot data** (always populated — ideal for a demo). The
+> Alpha Vantage keys power live **news** + individual live quotes; `FINNHUB_API_KEY`
+> is optional. CORS is same-origin behind Caddy, so the origin line is just
+> belt-and-suspenders.
 
-Create the venv, install deps (torch is intentionally excluded — the LSTM
-forecaster degrades to "model unavailable" on 1 GB RAM), and seed the DB + demo
-account:
+Create the venv, install deps (no `torch` — the LSTM outlook shows "model
+unavailable"; everything else works), seed the DB + demo account, and start the
+service:
 
 ```bash
 python3.11 -m venv venv
 ./venv/bin/pip install --upgrade pip
 ./venv/bin/pip install -r requirements.txt
 ./venv/bin/python init_db.py          # creates test.db + demo@fluxusfisci.app
-```
 
-Install and start the backend service:
-
-```bash
 sudo cp ~/Fluxus_Fisci/deploy/fluxus-backend.service /etc/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable --now fluxus-backend
@@ -145,27 +166,27 @@ REACT_APP_API_URL=/api/v1 CI=false NODE_OPTIONS=--max-old-space-size=1024 npm ru
 ```
 
 `REACT_APP_API_URL=/api/v1` makes the app call the API **relative to its own
-origin**, which Caddy proxies to the backend — no CORS, works on any domain.
-The build lands in `frontend/build/` (including `build/case-study/`).
+origin** (Caddy proxies it to the backend) — no CORS. The build lands in
+`frontend/build/` (including `build/case-study/`).
 
 ---
 
 ## 6. Configure Caddy (auto-HTTPS)
 
-Edit the domain in the Caddyfile, install it, and start Caddy:
+The committed `deploy/Caddyfile` already targets `fluxus-fisci.cheruvathoor.com`. If you
+chose a different hostname, set it here; otherwise this is a no-op:
 
 ```bash
-# put YOUR DuckDNS hostname into the config (replaces the placeholder):
-DOMAIN=fluxusfisci.duckdns.org
-sed -i "s|fluxusfisci.duckdns.org|$DOMAIN|g" ~/Fluxus_Fisci/deploy/Caddyfile
+DOMAIN=fluxus-fisci.cheruvathoor.com
+sed -i "s|fluxus-fisci.cheruvathoor.com|$DOMAIN|g" ~/Fluxus_Fisci/deploy/Caddyfile
 
 sudo cp ~/Fluxus_Fisci/deploy/Caddyfile /etc/caddy/Caddyfile
 sudo systemctl enable --now caddy
 sudo systemctl reload caddy
 ```
 
-Caddy will fetch a Let's Encrypt certificate on first request (needs port 80/443
-open and the domain resolving to this box — both done above). Watch it:
+Caddy fetches a real Let's Encrypt certificate on the first request (needs ports
+80/443 open and the A record resolving to this box — both done in §1–2). Watch it:
 
 ```bash
 sudo journalctl -u caddy -f      # look for "certificate obtained successfully"
@@ -175,23 +196,24 @@ sudo journalctl -u caddy -f      # look for "certificate obtained successfully"
 
 ## 7. Verify
 
-From your laptop:
+From your PC:
 
-```bash
-curl -sI  https://fluxusfisci.duckdns.org/            # 200, valid TLS
-curl -s   https://fluxusfisci.duckdns.org/health      # {"status":"healthy"}
-curl -sI  https://fluxusfisci.duckdns.org/case-study/index.html   # 200
+```powershell
+curl.exe -sI  https://fluxus-fisci.cheruvathoor.com/                       # 200, valid TLS
+curl.exe -s   https://fluxus-fisci.cheruvathoor.com/health                 # {"status":"healthy"}
+curl.exe -sI  https://fluxus-fisci.cheruvathoor.com/case-study/index.html  # 200
 ```
 
-Open **https://fluxusfisci.duckdns.org** in a browser:
-- Landing page → **Live demo**, or sign in `demo@fluxusfisci.app` / `demo1234`.
-- Dashboard/Markets/Portfolio/News populate (snapshot); **Case study** link works.
+Open **https://fluxus-fisci.cheruvathoor.com**:
+- Landing → **Live demo**, or sign in `demo@fluxusfisci.app` / `demo1234`.
+- Dashboard / Markets / Portfolio / News populate (snapshot); the **Case study**
+  link (header/footer/landing) opens `/case-study`.
 
 ---
 
 ## 8. Updating later
 
-Push changes from your laptop, then on the box:
+Commit + push from your PC, then on the box:
 
 ```bash
 cd ~/Fluxus_Fisci && bash deploy/deploy.sh
@@ -203,26 +225,23 @@ That pulls, reinstalls deps, rebuilds the frontend, and restarts backend + Caddy
 
 ## 9. Notes, limits & teardown
 
-- **Single instance / SQLite** — no autoscaling; perfect for a portfolio demo,
-  not for production traffic. The DB persists on the EBS volume across restarts.
-- **RAM (1 GB)** — the 2 GB swap from `setup-ec2.sh` is what lets `npm run build`
-  finish. If a build still struggles, build locally and `scp -i key.pem -r
-  frontend/build ec2-user@<EIP>:~/Fluxus_Fisci/frontend/` instead.
-- **LSTM forecaster** — stays disabled (no `torch`), so `/insights` shows a
-  labelled "model unavailable" for the outlook. Everything else works.
-- **CORS origin** — `app/core/config.py` still hard-codes an old
-  `ai-financial-market-prediction-system.vercel.app` origin; harmless here
-  (same-origin), but worth cleaning up. Your real origin is set via
-  `BACKEND_CORS_ORIGINS` in `.env`.
-- **Free-tier care (new $200 / 6-month plan)** — a single t3.micro + 30 GB EBS
-  runs ~$10/mo (~$60 over 6 months), well under $200. Keep the Elastic IP
-  **associated** (an idle, unassociated EIP is billed). Set **Billing → Budgets**
-  alarms (e.g. $50 and $150). The account **auto-closes after 6 months or when
-  credits are exhausted** unless you upgrade — plan to migrate/upgrade before
-  then if you want the demo to stay live. A **t3.small (2 GB)** is a fine upgrade
-  (~$15/mo, still < $200) if you want more headroom or to enable torch/LSTM.
-- **Teardown** — Terminate the instance, then **release** the Elastic IP so it
-  doesn't accrue charges. Delete the DuckDNS record if you like.
+- **Single instance / SQLite** — great for a portfolio demo, not production
+  traffic. The DB persists on the EBS volume across restarts (it re-seeds if you
+  delete `backend/test.db` and re-run `init_db.py`).
+- **RAM (1 GB)** — the 2 GB swap from `setup-ec2.sh` lets `npm run build` finish.
+  If a build still gets killed, build on your PC and upload it:
+  `scp -i fluxus-key.pem -r frontend/build ec2-user@<EIP>:~/Fluxus_Fisci/frontend/`.
+- **LSTM forecaster** — disabled (no `torch`), so `/insights` shows a labelled
+  "model unavailable" for the outlook; everything else works.
+- **CORS** — env-driven (`BACKEND_CORS_ORIGINS` in `.env`); no stale origins in
+  `config.py`. Same-origin here anyway.
+- **Free-tier care ($200 / 6-month plan)** — ~$10/mo (~$60 over 6 months), well
+  under $200. Keep the Elastic IP **associated** (an idle, unassociated EIP is
+  billed). Set **Billing → Budgets** alarms (e.g. $50 and $150). The account
+  **auto-closes after 6 months or when credits run out** unless you upgrade to a
+  paid plan. A **t3.small (2 GB, ~$15/mo)** is a fine upgrade for more headroom.
+- **Teardown** — Terminate the instance, **release** the Elastic IP, and delete
+  the `fluxus-fisci` DNS A record.
 
 ---
 
@@ -230,9 +249,12 @@ That pulls, reinstalls deps, rebuilds the frontend, and restarts backend + Caddy
 
 | Symptom | Check |
 |---|---|
-| TLS never issued | Port 80 open? Domain resolves to `<EIP>`? `sudo journalctl -u caddy -f` |
-| 502 on `/api/*` | `sudo systemctl status fluxus-backend`; `journalctl -u fluxus-backend -e` |
+| `nslookup` doesn't return `<EIP>` | DNS not propagated yet, or record is on the wrong host — wait / re-check the A record. On Cloudflare set it to **DNS only (grey cloud)**. |
+| TLS never issued | Ports 80 **and** 443 open? Domain resolves to `<EIP>`? `sudo journalctl -u caddy -f`. |
+| `curl` shows cert/hostname error | You started Caddy before DNS resolved — `sudo systemctl restart caddy` once `nslookup` is correct. |
+| 502 on `/api/*` | `sudo systemctl status fluxus-backend`; `journalctl -u fluxus-backend -e`. |
 | Blank frontend | Did `npm run build` succeed? Is `frontend/build/index.html` present? |
-| Build killed (OOM) | Confirm swap: `swapon --show`; or build locally and `scp` the `build/` dir |
-| Build error `ERR_OSSL_EVP_UNSUPPORTED` | Newer Node + CRA: prefix the build with `NODE_OPTIONS=--openssl-legacy-provider` |
-| API 404s in browser | Frontend built with `REACT_APP_API_URL=/api/v1`? Rebuild if not |
+| Build killed (OOM) | `swapon --show` (expect 2 GB); or build locally and `scp` the `build/` dir. |
+| Build error `ERR_OSSL_EVP_UNSUPPORTED` | Prefix build with `NODE_OPTIONS=--openssl-legacy-provider`. |
+| API 404s in browser | Frontend built with `REACT_APP_API_URL=/api/v1`? Rebuild if not. |
+| SSH "UNPROTECTED KEY" (Windows) | Run the `icacls` commands in §3, or use EC2 Instance Connect. |
