@@ -1,9 +1,7 @@
 import { FC, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronRight, GitCompareArrows, Search, X } from 'lucide-react';
-import SectionHeading from '../ui/SectionHeading';
 import EmptyState from '../ui/EmptyState';
-import Button from '../ui/Button';
 import Delta from '../ui/Delta';
 import PriceAreaChart from '../charts/PriceAreaChart';
 import { useAssetInsight, useHistory, useSearch, useStock } from '../../lib/queries';
@@ -217,8 +215,7 @@ const AssetSearchAdd: FC<{ existing: string[]; onAdd: (symbol: string) => void }
 /**
  * The compare workspace itself: search-to-add plus up to three side-by-side
  * columns. Owns its own symbol set (seeded by `defaultSymbols`). Rendered on
- * its own — e.g. under a compact inline toggle on Markets — or inside
- * `CompareSection` below.
+ * its own — under a compact inline toggle on Markets and Portfolio.
  */
 export const ComparePanel: FC<{ defaultSymbols?: string[] }> = ({ defaultSymbols = [] }) => {
   const [symbols, setSymbols] = useState<string[]>(() => defaultSymbols.slice(0, MAX));
@@ -251,41 +248,4 @@ export const ComparePanel: FC<{ defaultSymbols?: string[] }> = ({ defaultSymbols
   );
 };
 
-/**
- * Collapsible Compare section (heading + description + toggle), used on
- * Portfolio. Collapsed by default so it fires no queries until the reader opts
- * in; `defaultSymbols` seeds the panel (e.g. the reader's top holdings).
- */
-export const CompareSection: FC<{ defaultSymbols?: string[]; description?: string }> = ({
-  defaultSymbols = [],
-  description,
-}) => {
-  const [open, setOpen] = useState(false);
 
-  return (
-    <section>
-      <SectionHeading
-        eyebrow="Compare"
-        title="Compare assets side by side"
-        description={
-          description ??
-          'Put two or three assets next to each other — their price shape, the same labelled signals, and an honest reading of each. For understanding, not a recommendation.'
-        }
-        action={
-          <Button
-            size="sm"
-            variant={open ? 'secondary' : 'outline'}
-            onClick={() => setOpen((o) => !o)}
-            aria-expanded={open}
-          >
-            <GitCompareArrows size={15} /> {open ? 'Hide' : 'Compare'}
-          </Button>
-        }
-      />
-
-      {open && <ComparePanel defaultSymbols={defaultSymbols} />}
-    </section>
-  );
-};
-
-export default CompareSection;

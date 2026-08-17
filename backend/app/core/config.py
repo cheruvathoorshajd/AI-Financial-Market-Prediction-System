@@ -28,8 +28,6 @@ class Settings(BaseSettings):
     # NEWS_SENTIMENT (shares the ~25/day budget), then to a labelled snapshot.
     FINNHUB_API_KEY: str = ""
 
-    # Exact-match allowed origins. Wildcard hosts (e.g. Vercel preview URLs)
-    # are handled separately via BACKEND_CORS_ORIGIN_REGEX below.
     # Local dev defaults only. In production the app is same-origin (its API is
     # served behind the same host via Caddy), and any extra browser origins are
     # supplied explicitly through the BACKEND_CORS_ORIGINS env var.

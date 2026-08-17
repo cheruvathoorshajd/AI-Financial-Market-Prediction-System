@@ -65,14 +65,6 @@ export interface AskAnswer {
   disclaimer: string;
 }
 
-export interface ForecastBacktest {
-  model_mae_pct: number;
-  naive_mae_pct: number;
-  skill_vs_naive_pct: number;
-  directional_accuracy: number;
-  test_points: number;
-}
-
 export interface OutlookRow {
   symbol: string;
   name: string;
