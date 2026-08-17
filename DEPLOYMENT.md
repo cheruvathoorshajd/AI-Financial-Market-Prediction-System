@@ -19,8 +19,11 @@ automatic HTTPS on a free **DuckDNS** domain. SQLite lives on the instance disk.
 **Everything you need is in [`deploy/`](deploy/):** `setup-ec2.sh`,
 `fluxus-backend.service`, `Caddyfile`, `deploy.sh`.
 
-Costs: within the 12-month free tier (750 h/mo of t2/t3.micro + 30 GB EBS),
-this is **$0**. DuckDNS + Caddy TLS are free. Watch-outs are called out in §9.
+Costs (new AWS Free Tier — $200 credits over 6 months): a t3.micro 24/7
+(~$7.50/mo) + 30 GB EBS (~$2.40/mo) ≈ **~$10/mo → ~$60 over 6 months**, well
+under the $200 credit. DuckDNS + Caddy TLS are free. NOTE: this tier is
+credit-capped and the account auto-closes after 6 months or when credits run out
+unless you upgrade — set a Billing budget alarm (§9). Watch-outs in §9.
 
 ---
 
@@ -211,8 +214,13 @@ That pulls, reinstalls deps, rebuilds the frontend, and restarts backend + Caddy
   `ai-financial-market-prediction-system.vercel.app` origin; harmless here
   (same-origin), but worth cleaning up. Your real origin is set via
   `BACKEND_CORS_ORIGINS` in `.env`.
-- **Free-tier care** — keep ONE t2/t3.micro, keep the Elastic IP **associated**
-  (an idle, unassociated EIP is billed), and set a **Billing budget alarm**.
+- **Free-tier care (new $200 / 6-month plan)** — a single t3.micro + 30 GB EBS
+  runs ~$10/mo (~$60 over 6 months), well under $200. Keep the Elastic IP
+  **associated** (an idle, unassociated EIP is billed). Set **Billing → Budgets**
+  alarms (e.g. $50 and $150). The account **auto-closes after 6 months or when
+  credits are exhausted** unless you upgrade — plan to migrate/upgrade before
+  then if you want the demo to stay live. A **t3.small (2 GB)** is a fine upgrade
+  (~$15/mo, still < $200) if you want more headroom or to enable torch/LSTM.
 - **Teardown** — Terminate the instance, then **release** the Elastic IP so it
   doesn't accrue charges. Delete the DuckDNS record if you like.
 
