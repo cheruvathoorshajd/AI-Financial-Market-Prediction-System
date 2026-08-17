@@ -64,23 +64,32 @@ as **`<EIP>`**. (An Elastic IP is free while associated with a running instance.
 
 ## 2. Point cheruvathoor.com at the box (DNS)
 
-Add ONE **A record** at wherever `cheruvathoor.com`'s DNS is managed:
+`cheruvathoor.com` uses **Namecheap BasicDNS** (nameservers
+`dns1/dns2.registrar-servers.com`), so DNS records are managed at **Namecheap**.
+Zoho only handles your **email** — its MX records are untouched, and adding a
+subdomain A record does not affect email.
+
+**Namecheap (your setup):** Namecheap → **Domain List** → **cheruvathoor.com** →
+**Manage** → **Advanced DNS** → **Host Records** → **Add New Record**:
 
 | Field | Value |
 |---|---|
-| Type | **A** |
-| Name / Host | **`fluxus-fisci`**  (just the subdomain label, not the full name) |
-| Value / Points to | **`<EIP>`** (your Elastic IP) |
-| TTL | default / 300 |
+| **Type** | **A Record** |
+| **Host** | **`fluxus-fisci`** — the label only; Namecheap appends `.cheruvathoor.com` |
+| **Value** | **`<EIP>`** (your Elastic IP) |
+| **TTL** | Automatic (or 5 min) |
 
-Provider specifics:
-- **Registrar DNS** (GoDaddy, Namecheap, Google Domains, etc.): open DNS
-  management → *Add record* → Type **A**, Host **`fluxus-fisci`**, Value **`<EIP>`**.
-- **Cloudflare:** DNS → *Add record* → **A**, Name **`fluxus-fisci`**, IPv4 **`<EIP>`**,
-  and set **Proxy status = DNS only (grey cloud)** — *not* proxied, or Caddy's
-  cert challenge fails. Save.
-- **Route 53:** Hosted zone for `cheruvathoor.com` → *Create record* → record
-  name **`fluxus-fisci`**, type **A**, value **`<EIP>`**.
+Save it (green ✓). Leave the existing `@` / `www` records and the Zoho **MX**/TXT
+records exactly as they are.
+
+<details>
+<summary>Other DNS hosts (only if you ever move DNS off Namecheap)</summary>
+
+- **Cloudflare:** DNS → Add record → **A**, Name `fluxus-fisci`, IPv4 `<EIP>`,
+  **Proxy status = DNS only (grey cloud)** — proxied breaks Caddy's cert challenge.
+- **Route 53:** Hosted zone → Create record → name `fluxus-fisci`, type **A**,
+  value `<EIP>`.
+</details>
 
 **Verify it resolves before continuing** (from your PC, PowerShell):
 
@@ -88,7 +97,8 @@ Provider specifics:
 nslookup fluxus-fisci.cheruvathoor.com     # must return <EIP>
 ```
 
-DNS can take a few minutes (occasionally longer). Wait until it returns `<EIP>`.
+Namecheap usually propagates in a few minutes (up to ~30). Wait until it
+returns `<EIP>`.
 
 ---
 
