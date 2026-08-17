@@ -11,7 +11,7 @@ const GithubMark: FC<{ size?: number }> = ({ size = 14 }) => (
 
 export const Footer: FC = () => (
   <footer className="mt-20 border-t border-line bg-surface/40">
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+    <div className="container-app py-10">
       <div className="flex flex-col justify-between gap-8 md:flex-row">
         <div className="max-w-xs">
           <BrandLink />
@@ -35,6 +35,11 @@ export const Footer: FC = () => (
             <ul className="space-y-2 text-ink-secondary">
               <li><Link to="/design-system" className="hover:text-ink">Design system</Link></li>
               <li><Link to="/insights" className="hover:text-ink">How the AI works</Link></li>
+              <li>
+                <a href="/case-study/index.html" target="_blank" rel="noreferrer" className="hover:text-ink">
+                  Case study
+                </a>
+              </li>
             </ul>
           </div>
           <div>

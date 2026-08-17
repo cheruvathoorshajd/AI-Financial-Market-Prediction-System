@@ -1,0 +1,17 @@
+[Unit]
+Description=Fluxus Fisci FastAPI backend (uvicorn)
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user/Fluxus_Fisci/backend
+# The app loads backend/.env itself (pydantic-settings), so no EnvironmentFile
+# is needed — keeping the JSON-ish CORS value out of systemd's parser.
+ExecStart=/home/ec2-user/Fluxus_Fisci/backend/venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,5 +1,5 @@
 import secrets
-from typing import List, Union
+from typing import List, Optional, Union
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -30,17 +30,18 @@ class Settings(BaseSettings):
 
     # Exact-match allowed origins. Wildcard hosts (e.g. Vercel preview URLs)
     # are handled separately via BACKEND_CORS_ORIGIN_REGEX below.
+    # Local dev defaults only. In production the app is same-origin (its API is
+    # served behind the same host via Caddy), and any extra browser origins are
+    # supplied explicitly through the BACKEND_CORS_ORIGINS env var.
     BACKEND_CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3001",
-        "https://ai-financial-market-prediction-system.vercel.app",
     ]
 
-    # Starlette matches allow_origins by exact string, so glob patterns like
-    # "https://*.vercel.app" never match. Use a regex for wildcard hosts.
-    BACKEND_CORS_ORIGIN_REGEX: str = r"https://.*\.vercel\.app"
+    # No wildcard by default — set an exact allow-list via env instead.
+    BACKEND_CORS_ORIGIN_REGEX: Optional[str] = None
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

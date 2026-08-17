@@ -6,7 +6,7 @@ snapshot). With no lots given it falls back to the seeded demo portfolio.
 from typing import List, Optional
 
 from app.data import seed
-from app.services.market_service import market_service, _aggregate_source
+from app.services.market_service import _aggregate_source
 
 
 def get_portfolio(
@@ -22,10 +22,10 @@ def get_portfolio(
     day_change_value = 0.0
 
     for lot in source_lots:
-        # Snapshot: the demo holdings span ~8 symbols; fetching them all live on
-        # every load would drain the small daily quota. Live is reserved for the
-        # single asset the user opens and their watchlist.
-        quote = market_service.get_stock_price(lot["symbol"], allow_live=False)
+        # Snapshot for the portfolio: a calm, always-populated "daily read" with
+        # one deterministic as-of basis for the totals (never a flickering
+        # live/snapshot mix). Reference snapshot data keeps the demo complete.
+        quote = seed.snapshot_quote(str(lot["symbol"]).strip().upper())
         if not quote:
             # No quote for this symbol — surface it (flagged, and kept out of
             # every total) instead of silently dropping it. See finding B4.

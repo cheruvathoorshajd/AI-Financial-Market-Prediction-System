@@ -44,7 +44,8 @@ class NewsService:
 
     def __init__(self) -> None:
         self.finnhub_key = settings.FINNHUB_API_KEY
-        self.av_key = settings.ALPHA_VANTAGE_API_KEY
+        # ALPHA_VANTAGE_API_KEY may hold several comma-separated keys; news uses the first.
+        self.av_key = str(settings.ALPHA_VANTAGE_API_KEY).split(",")[0].strip()
         self.cache: Dict[str, Tuple[dict, datetime]] = {}
         # News changes slowly relative to our tiny quotas; cache aggressively.
         self.cache_duration = timedelta(minutes=20)

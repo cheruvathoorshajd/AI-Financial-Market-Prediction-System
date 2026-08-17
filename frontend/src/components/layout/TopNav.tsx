@@ -41,10 +41,10 @@ export const TopNav: FC = () => {
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-base/80 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
+      <div className="container-app flex h-16 items-center justify-between">
         <div className="flex items-center gap-8">
           <BrandLink />
-          <nav className="hidden items-center gap-1 md:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             {items.map((item) => (
               <NavLink key={item.to} to={item.to} end={item.end} className={linkClass}>
                 {({ isActive }) => (
@@ -71,7 +71,7 @@ export const TopNav: FC = () => {
             <kbd className="hidden rounded border border-line bg-base px-1.5 font-mono text-2xs md:inline">⌘K</kbd>
           </button>
           {user ? (
-            <div className="hidden items-center gap-2.5 md:flex">
+            <div className="hidden items-center gap-2.5 lg:flex">
               {isDemo ? (
                 <>
                   <Link
@@ -112,7 +112,7 @@ export const TopNav: FC = () => {
               </button>
             </div>
           ) : (
-            <div className="hidden items-center gap-2 md:flex">
+            <div className="hidden items-center gap-2 lg:flex">
               <button
                 onClick={() => navigate('/login')}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-ink-secondary transition-colors hover:text-ink"
@@ -129,7 +129,7 @@ export const TopNav: FC = () => {
           )}
           <button
             onClick={() => setOpen((o) => !o)}
-            className="rounded-lg p-2 text-ink-secondary hover:bg-raised md:hidden"
+            className="rounded-lg p-2 text-ink-secondary hover:bg-raised lg:hidden"
             aria-label="Toggle menu"
             aria-expanded={open}
             aria-controls="mobile-nav"
@@ -141,7 +141,7 @@ export const TopNav: FC = () => {
 
       {/* Mobile menu */}
       {open && (
-        <nav id="mobile-nav" className="border-t border-line bg-surface px-4 py-3 md:hidden">
+        <nav id="mobile-nav" className="border-t border-line bg-surface px-4 py-3 lg:hidden">
           {isDemo && (
             <div className="mb-2 rounded-lg border border-gold/40 bg-gold/10 px-3 py-2.5 text-warn">
               <p className="flex items-center gap-1.5 text-sm font-semibold">

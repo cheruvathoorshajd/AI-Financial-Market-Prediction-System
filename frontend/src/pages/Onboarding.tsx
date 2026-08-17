@@ -196,6 +196,7 @@ const Onboarding: FC = () => {
           <nav className="flex items-center gap-4 sm:gap-5">
             <a href="#inside" className="hidden text-sm text-ink-secondary transition-colors hover:text-ink md:block">What’s inside</a>
             <a href="#how" className="hidden text-sm text-ink-secondary transition-colors hover:text-ink sm:block">How it works</a>
+            <a href="/case-study/index.html" target="_blank" rel="noopener noreferrer" className="hidden text-sm text-ink-secondary transition-colors hover:text-ink sm:block">Case study</a>
             <Link to="/login" state={{ from }} className="text-sm font-medium text-ink-secondary transition-colors hover:text-ink">Sign in</Link>
             <button
               onClick={startDemo}
@@ -225,22 +226,7 @@ const Onboarding: FC = () => {
               numbers, and is honest when it doesn’t know.
             </p>
 
-            <div className="reveal delay-3 mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <button
-                onClick={startDemo}
-                disabled={loading}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-accent px-6 py-3 font-semibold text-[#F7F8F5] shadow-[0_8px_20px_-10px_rgba(47,111,99,0.55)] transition-colors hover:bg-accent-hover disabled:opacity-60"
-              >
-                {loading ? 'Starting…' : 'Explore the live demo'} <ArrowRight size={17} />
-              </button>
-              <a
-                href="#how"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-line-strong px-6 py-3 font-semibold text-ink transition-colors hover:border-ink-muted"
-              >
-                How it works
-              </a>
-            </div>
-            {err && <p className="reveal mt-3 text-sm text-neg" role="alert">{err}</p>}
+            {err && <p className="reveal mt-6 text-sm text-neg" role="alert">{err}</p>}
 
             <div className="reveal delay-4 mt-8 flex flex-wrap items-center gap-2">
               {['Transparent heuristics', 'Deterministic reading', 'Experimental LSTM'].map((chip) => (

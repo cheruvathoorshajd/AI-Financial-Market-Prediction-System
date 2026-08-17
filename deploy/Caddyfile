@@ -1,0 +1,25 @@
+# Fluxus Fisci — Caddy config (automatic HTTPS via Let's Encrypt).
+# Frontend (React build + case study) and the API are served from ONE origin,
+# so the browser makes same-origin calls and no CORS is involved.
+#
+# >>> Replace the hostname below with YOUR DuckDNS domain. <<<
+
+fluxusfisci.duckdns.org {
+    encode zstd gzip
+
+    # FastAPI backend — everything under /api/* and the health check.
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8000
+    }
+    handle /health {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    # React production build + the /case-study assets, with SPA fallback so
+    # client-side routes (e.g. /markets, /portfolio) resolve to index.html.
+    handle {
+        root * /home/ec2-user/Fluxus_Fisci/frontend/build
+        try_files {path} /index.html
+        file_server
+    }
+}

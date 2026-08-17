@@ -33,13 +33,15 @@ export const DataSourceBadge: FC<DataSourceBadgeProps> = ({
     ? 'Snapshot data'
     : 'Snapshot';
 
+  const title = isLive
+    ? 'Real-time quotes from Alpha Vantage.'
+    : source === 'mixed'
+    ? 'A mix of live quotes and saved-snapshot values — each carries its own source. Everything shown is real; some prices are live, the rest are the latest saved snapshot.'
+    : 'Showing a realistic saved market snapshot — the live Alpha Vantage free-tier quota (~25 requests/day) is exhausted. Values are real, just not live.';
+
   return (
     <span
-      title={
-        isLive
-          ? 'Real-time quotes from Alpha Vantage.'
-          : 'Showing a realistic saved market snapshot — the live Alpha Vantage free-tier quota (~25 requests/day) is exhausted. Values are real, just not live.'
-      }
+      title={title}
       className={cn(
         'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.08em]',
         isLive
