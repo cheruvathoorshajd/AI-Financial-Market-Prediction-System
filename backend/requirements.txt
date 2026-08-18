@@ -7,7 +7,7 @@ email-validator==2.3.0
 python-jose[cryptography]==3.5.0
 bcrypt==5.0.0
 python-multipart==0.0.32
-numpy==2.5.2
+numpy==2.2.6   # 3.11-compatible (2.5.x needs Python >=3.12)
 requests==2.34.2
 # torch (LSTM forecaster) is intentionally NOT installed on deploy — it OOMs the
 # free-tier build (~800MB; the backend deploys to Railway, see railway.toml).

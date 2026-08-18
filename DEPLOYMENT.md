@@ -183,6 +183,10 @@ origin** (Caddy proxies it to the backend) — no CORS. The build lands in
 
 ## 6. Configure Caddy (auto-HTTPS)
 
+Caddy itself and its systemd unit were already installed by `setup-ec2.sh` in §3
+(official binary + `deploy/caddy.service`, which runs as `ec2-user`). Here you
+just drop in the Caddyfile and start it.
+
 The committed `deploy/Caddyfile` already targets `fluxus-fisci.cheruvathoor.com`. If you
 chose a different hostname, set it here; otherwise this is a no-op:
 
