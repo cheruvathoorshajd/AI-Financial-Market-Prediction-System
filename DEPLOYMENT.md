@@ -23,10 +23,12 @@ automatic HTTPS on **`fluxus-fisci.cheruvathoor.com`**. SQLite lives on the inst
 **Everything you need is in [`deploy/`](deploy/):** `setup-ec2.sh`,
 `fluxus-backend.service`, `Caddyfile`, `deploy.sh`.
 
-**Costs (new AWS Free Tier — $200 credits / 6 months):** t3.micro 24/7 (~$7.50/mo)
-+ 30 GB EBS (~$2.40/mo) ≈ **~$10/mo → ~$60 over 6 months**, well under the $200.
-Your domain + Caddy TLS cost nothing extra. The account auto-closes after 6
-months or when credits run out unless you upgrade — set a budget alarm (§9).
+**Costs (AWS Free Tier — $100 credit, expires ~12 months out):** t3.micro 24/7
+(~$7.50/mo) + 30 GB EBS (~$2.40/mo) ≈ **~$10/mo**, so the $100 credit covers
+roughly **10 months** of running 24/7. Your domain + Caddy TLS cost nothing
+extra. (AWS advertises "up to $200" = $100 upfront + up to $100 more for
+completing activities.) Set a budget alarm (§9); once credits are used/expired
+it's pay-as-you-go, or the account can close on the free plan unless you upgrade.
 
 ---
 
@@ -249,11 +251,13 @@ That pulls, reinstalls deps, rebuilds the frontend, and restarts backend + Caddy
   "model unavailable" for the outlook; everything else works.
 - **CORS** — env-driven (`BACKEND_CORS_ORIGINS` in `.env`); no stale origins in
   `config.py`. Same-origin here anyway.
-- **Free-tier care ($200 / 6-month plan)** — ~$10/mo (~$60 over 6 months), well
-  under $200. Keep the Elastic IP **associated** (an idle, unassociated EIP is
-  billed). Set **Billing → Budgets** alarms (e.g. $50 and $150). The account
-  **auto-closes after 6 months or when credits run out** unless you upgrade to a
-  paid plan. A **t3.small (2 GB, ~$15/mo)** is a fine upgrade for more headroom.
+- **Free-tier care ($100 credit, ~12-month expiry)** — ~$10/mo, so the $100
+  credit covers ~10 months of 24/7 running. Keep the Elastic IP **associated**
+  (an idle, unassociated EIP is billed). Set **Billing → Budgets** alarms
+  (e.g. $80 and $95) and watch **Billing → Credits** for the balance + expiry.
+  Once credits are used/expired it's pay-as-you-go (or the account can close on
+  the free plan) unless you upgrade. A **t3.small (2 GB, ~$15/mo)** is a fine
+  upgrade for more headroom or to enable torch/LSTM.
 - **Teardown** — Terminate the instance, **release** the Elastic IP, and delete
   the `fluxus-fisci` DNS A record.
 
