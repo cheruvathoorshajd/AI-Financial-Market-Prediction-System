@@ -1,0 +1,42 @@
+name: Deploy to EC2
+
+# Push-to-deploy: every push to main (or a manual run) typechecks, then SSHes
+# into the EC2 box and runs deploy/deploy.sh (git reset → rebuild → restart).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Gate: a broken frontend build never reaches the server.
+      - name: Typecheck frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npx tsc --noEmit
+
+      - name: Deploy over SSH (runs deploy.sh on the box)
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key \
+            ec2-user@"$EC2_HOST" 'cd ~/Fluxus_Fisci && bash deploy/deploy.sh'

@@ -6,8 +6,9 @@ set -euo pipefail
 APP="${APP:-/home/ec2-user/Fluxus_Fisci}"
 cd "$APP"
 
-echo "==> git pull"
-git pull --ff-only
+echo "==> sync to origin/main (hard reset — discards any local drift; .env/db are git-ignored so untouched)"
+git fetch origin
+git reset --hard origin/main
 
 echo "==> backend deps"
 cd "$APP/backend"
