@@ -1,0 +1,7 @@
+# Optional ML extra: the experimental LSTM forecaster (app/ml/forecaster.py).
+# CPU-only torch — needs >=2 GB RAM (t3.small+); do NOT install on a 1 GB box.
+# Installed per-box only when a backend/.enable-ml marker exists (see deploy/deploy.sh),
+# so the default deploy stays lean and never OOMs.
+--index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://pypi.org/simple
+torch==2.4.1

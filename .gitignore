@@ -12,6 +12,9 @@
 # Local scratch (screenshots, etc.)
 image.png
 
+# Per-box opt-in marker to install ML extras (torch) — see deploy/deploy.sh
+backend/.enable-ml
+
 # Python
 __pycache__/
 *.py[cod]

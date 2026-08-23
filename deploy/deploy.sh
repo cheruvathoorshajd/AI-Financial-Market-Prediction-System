@@ -16,6 +16,14 @@ cd "$APP/backend"
 ./venv/bin/pip install -q --upgrade pip
 ./venv/bin/pip install -q -r requirements.txt
 
+# Optional ML extras (torch → experimental LSTM outlook). Installed only on boxes
+# that opted in with a backend/.enable-ml marker (needs >=2 GB RAM, e.g. t3.small).
+# The marker is git-ignored, so it persists across deploys and never lands in the repo.
+if [ -f .enable-ml ]; then
+  echo "==> ML extras (torch/LSTM) — .enable-ml present"
+  ./venv/bin/pip install -q -r requirements-ml.txt
+fi
+
 echo "==> frontend build (relative /api/v1 → same-origin via Caddy)"
 cd "$APP/frontend"
 npm ci

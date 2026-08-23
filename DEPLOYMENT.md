@@ -247,8 +247,12 @@ That pulls, reinstalls deps, rebuilds the frontend, and restarts backend + Caddy
 - **RAM (1 GB)** — the 2 GB swap from `setup-ec2.sh` lets `npm run build` finish.
   If a build still gets killed, build on your PC and upload it:
   `scp -i fluxus-key.pem -r frontend/build ec2-user@<EIP>:~/Fluxus_Fisci/frontend/`.
-- **LSTM forecaster** — disabled (no `torch`), so `/insights` shows a labelled
-  "model unavailable" for the outlook; everything else works.
+- **LSTM forecaster** — off by default (no `torch`), so `/insights` shows a
+  labelled "model unavailable" for the outlook; everything else works. To enable
+  it: run the instance on **t3.small (2 GB)+**, then on the box
+  `touch ~/Fluxus_Fisci/backend/.enable-ml` and `bash deploy/deploy.sh` — the
+  marker makes `deploy.sh` install `requirements-ml.txt` (CPU torch). The marker
+  is git-ignored (box-local), so a fresh 1 GB box stays lean and never OOMs.
 - **CORS** — env-driven (`BACKEND_CORS_ORIGINS` in `.env`); no stale origins in
   `config.py`. Same-origin here anyway.
 - **Free-tier care ($100 credit, ~12-month expiry)** — ~$10/mo, so the $100
