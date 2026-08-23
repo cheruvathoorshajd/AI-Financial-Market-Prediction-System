@@ -6,6 +6,9 @@ A calm, literate companion for reading the markets — built for **understanding
 
 > This repository began life as a generic AI stock tracker. It has been rebuilt into Fluxus Fisci as a portfolio flagship: a real, running product with a coherent point of view, a bespoke design system, and an AI layer that is genuinely defensible rather than a faked demo.
 
+**🔗 Live:** <https://fluxus-fisci.cheruvathoor.com>  ·  **Case study:** [`case-study/`](case-study/) (also linked in-app)  ·  **Deploy guide:** [`DEPLOYMENT.md`](DEPLOYMENT.md)
+*(Live demo: `demo@fluxusfisci.app` / `demo1234`, or the **Live demo** button.)*
+
 ---
 
 ## 1. The problem
@@ -40,6 +43,7 @@ The surfaces, each designed with loading / empty / error / success states and re
 - **Portfolio** — **editable** holdings, allocation, and P&L over cost basis, calmly visualized.
 - **Settings** — profile, password, watchlist, and session: a full account section.
 - **Design system** (`/design-system`) — the token, type, and data-viz language in one place.
+- **Case study** (`/case-study`) — a standalone, on-brand product-design write-up of this project, served with the app and linked from the landing header & footer.
 - **404** — a standalone, on-brand not-found page.
 
 ### Signature interactions & novelties
@@ -106,13 +110,18 @@ frontend/  React 18 + TypeScript (strict) + Tailwind + Recharts + react-query
                   · layout/ · CommandPalette (⌘K) · DemoTour · RouteProgress
   src/pages/      Onboarding · Login · Register · Dashboard · Markets · AssetDetail · Insights
                   · News · Portfolio · Settings · DesignSystem · NotFound
+  public/case-study/   the built case study, served at /case-study
+deploy/    setup-ec2.sh · caddy.service · Caddyfile · deploy.sh   (AWS EC2 + Caddy)
+.github/   workflows/deploy.yml   (push-to-deploy CI)
+case-study/  standalone product-design case study (source; mirrored into public/)
+DEPLOYMENT.md   full AWS deploy walkthrough
 ```
 
 Secrets stay **server-side** — the Alpha Vantage key never enters the client bundle (the only client env var is the API base URL).
 
 **Auth token storage.** The JWT is kept in `localStorage` so the SPA can attach it as a bearer header. That trades a small XSS exposure (an injected script could read it) for simplicity; the app renders no untrusted HTML (no `dangerouslySetInnerHTML` anywhere), so there is no injection sink today. An `httpOnly` cookie would be stronger and is the natural next step beyond a portfolio demo.
 
-**Experimental LSTM.** The next-day forecaster (`/insights` outlook & per-asset forecast) needs PyTorch, which is intentionally left out of the free-tier deploy — it OOMs the build. It is imported lazily, so those views degrade to a labelled "model unavailable" when torch is absent; run `pip install torch` locally to enable them.
+**Experimental LSTM.** The next-day forecaster (`/insights` outlook & per-asset forecast) needs PyTorch, which is intentionally left out of the default deploy — it OOMs a 1 GB box. It is imported lazily, so those views degrade to a labelled "model unavailable" when torch is absent. Run `pip install torch` to enable it locally; on the AWS deploy it runs on a **t3.small (2 GB)+** box, switched on via a `backend/.enable-ml` marker (see §8).
 
 ## 7. Running it locally
 
@@ -151,14 +160,26 @@ REACT_APP_API_URL=http://localhost:8000/api/v1
 
 **Demo account:** `demo@fluxusfisci.app` / `demo1234` — or the **Live demo** button on the landing / sign-in, which starts the self-announcing, guided demo mode (see §3). The demo account is read-only for profile & password (enforced server-side) so it stays working for everyone; its holdings and watchlist remain editable.
 
-## 8. Testing
+## 8. Deployment (AWS)
+
+Live at **<https://fluxus-fisci.cheruvathoor.com>** — a single **AWS EC2** instance serves the React production build **and** the FastAPI API from one origin behind **Caddy** (automatic Let's Encrypt HTTPS). SQLite lives on the instance disk.
+
+- **One box, same-origin.** Caddy serves `frontend/build` (SPA + `/case-study`) and reverse-proxies `/api/*` → uvicorn (systemd) on `:8000`, so the browser makes same-origin calls — **no CORS**.
+- **Domain & TLS.** A subdomain of my own domain (`fluxus-fisci.cheruvathoor.com`, Namecheap DNS → the instance's Elastic IP); Caddy obtains and auto-renews the certificate.
+- **Data.** Market views run on the deterministic **snapshot** (always populated — ideal for a demo); live **news** flows via Finnhub / Alpha Vantage when a key is set.
+- **LSTM outlook.** Off by default (torch OOMs 1 GB); enabled on **t3.small (2 GB)+** via a git-ignored `backend/.enable-ml` marker that makes `deploy.sh` install `requirements-ml.txt` (CPU torch).
+- **Push-to-deploy.** `.github/workflows/deploy.yml` typechecks on every push to `main`, then SSHes in and runs `deploy/deploy.sh` (hard-reset to `main` → rebuild → restart) — push → live in ~2–3 min, the same convenience as a managed PaaS.
+
+Everything needed is in **[`deploy/`](deploy/)** (`setup-ec2.sh`, `caddy.service`, `Caddyfile`, `deploy.sh`); the full step-by-step (EC2 launch, Elastic IP, DNS, Caddy, enabling the LSTM) is in **[`DEPLOYMENT.md`](DEPLOYMENT.md)**. Running cost ≈ **$10–15/mo**, comfortably inside the AWS Free Tier credit.
+
+## 9. Testing
 
 ```bash
-cd backend && pytest              # signals, AI grounding fallback, portfolio math
+cd backend && pytest              # signals · insights + outlook routing · portfolio math · news · forecaster (torch-gated)
 cd frontend && npx tsc --noEmit   # TypeScript strict typecheck
 ```
 
-## 9. Honest capability notes (summary)
+## 10. Honest capability notes (summary)
 
 Nothing here *reliably* predicts the market — and the one model that tries says so itself. The app computes transparent technical signals, *explains* them in plain English composed deterministically from those same numbers, and includes an experimental LSTM forecaster that publishes its own backtested lack of edge. It is explicit — in the UI and in this document — about what is a heuristic, what is an API call, and what is an experimental forecast. **It is for understanding, not recommendations. Nothing in it is financial advice.**
 

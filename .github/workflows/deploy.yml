@@ -2,9 +2,14 @@ name: Deploy to EC2
 
 # Push-to-deploy: every push to main (or a manual run) typechecks, then SSHes
 # into the EC2 box and runs deploy/deploy.sh (git reset → rebuild → restart).
+# Docs-only pushes (README, case study) skip the deploy — nothing runtime changed.
+# Use the Actions tab / `gh workflow run` to force a deploy for those anyway.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'case-study/**'
   workflow_dispatch:
 
 concurrency:
