@@ -39,4 +39,4 @@ jobs:
           printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/deploy_key \
-            ec2-user@"$EC2_HOST" 'cd ~/Fluxus_Fisci && bash deploy/deploy.sh'
+            ec2-user@"$EC2_HOST" 'cd ~/Fluxus_Fisci && git fetch origin && git reset --hard origin/main && bash deploy/deploy.sh'
